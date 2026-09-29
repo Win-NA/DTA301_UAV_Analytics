@@ -1,8 +1,3 @@
-Tôi đã rà soát và cập nhật đồng bộ toàn bộ file README.md theo đúng tên dự án mới chuẩn xác: "Drone Telemetry Analytics & Solar Panel Inspection".
-
-Dưới đây là toàn bộ nội dung hoàn chỉnh, sạch sẽ, không chứa ký hiệu trích dẫn hay lỗi thừa để bạn dán ngay vào repository trên GitHub:
-
-Markdown
 # Drone Telemetry Analytics & Solar Panel Inspection
 
 A quantitative, data-driven analytics framework and predictive modeling system designed to assess UAV flight safety risks and evaluate thermal payload inspection reliability across large-scale photovoltaic (PV) solar farms.
@@ -55,15 +50,17 @@ Quantitative evidence from collected mission records reveals:
 
 ---
 
-## 5. Dataset Architecture
+## 5. Dataset Architecture & Access
 
 ### 5.1. Raw Datasets (`data/raw/`)
 
-| Dataset Name | Records / Dimensions | Content Summary | Analytical Function |
+Download the raw datasets and place them into the `data/raw/` directory:
+
+| Dataset Name | Records / Dimensions | Download Link | Primary Analytical Function |
 | :--- | :--- | :--- | :--- |
-| `engineered_features_labels.csv` | 5,000 rows × 9 cols | Derived sensor variables and binary risk labels. | Feature matrix for RQ1 & RQ3 classification models. |
-| `uav_navigation_dataset.csv` | 5,000 rows × 15 cols | Real-time telemetry (IMU, gyro, GPS, LiDAR, battery). | Physical trajectory & motion analysis. |
-| `SurveilDrone-Net23.csv` | 140,256 rows × 34 cols | Multi-mission surveillance, environmental, and thermal logs. | Core dataset for RQ2 regression and ANOVA modeling. |
+| `engineered_features_labels.csv` | 5,000 rows × 9 cols | [Download Link](https://drive.google.com/uc?export=download&id=16Fhb79Md7xeRd1UnvLZX1O_5ZcBXbUCJ) | Feature matrix for RQ1 & RQ3 classification models. |
+| `uav_navigation_dataset.csv` | 5,000 rows × 15 cols | [Download Link](https://drive.google.com/uc?export=download&id=1GSmGcMDsWNvbr6G1NUO_TTte0ZzoMXKv) | Physical trajectory & motion analysis. |
+| `SurveilDrone-Net23.csv` | 140,256 rows × 34 cols | [Download Link](https://drive.google.com/uc?export=download&id=1aOnszIUXpFpgeXhdIEjJn9m5ILmIQlxn) | Core dataset for RQ2 regression and ANOVA modeling. |
 
 ### 5.2. Processed Datasets (`data/processed/`)
 
@@ -76,76 +73,77 @@ Quantitative evidence from collected mission records reveals:
 
 ## 6. End-to-End Data Analytics Pipeline
 
+```text
 Raw Telemetry Streams & Inspection Datasets
-↓
+                     ↓
 Phase 1: Discovery & Problem Formulation
 (Business context, stakeholder mapping, RQ1-RQ3 formulation)
-↓
+                     ↓
 Phase 2: Data Preparation & Quality Assurance
 (Missing value imputation, outlier detection, physical range validation, type casting)
-↓
+                     ↓
 Phase 3: Model Planning & Feature Engineering
 (Extraction of imu_var, speed_diff, battery_drop; Data Dictionary establishment)
-↓
+                     ↓
 Phase 4: Model Building & Exploratory Data Analysis
 (Correlation heatmaps, distribution skewness checks, hypothesis testing)
-↓
+                     ↓
 Phase 5: Model Evaluation & Validation
 (Classification: AUC-ROC, F1-score; Regression: MAE, RMSE, Pearson r)
-↓
+                     ↓
 Phase 6: Operationalize & Decision Support
 (ML-driven risk thresholds translated into dashboard recommendations)
-
-
+```
 ---
-
 ## 7. Data Cleaning, Validation & Feature Engineering
 
 ### 7.1. Data Validation & Imputation (Week 4 Focus)
-- **Time-Series Missing Imputation**: Handled 1 missing observation in `speed_diff` and 9 missing observations in `imu_var` using forward linear interpolation (`interpolate(method='linear')`), preserving physical motion continuity.
-- **Operational Boundary Verification**:
-  - `battery_level_pct` constrained strictly to $[0, 100\%]$.
-  - `wind_speed_mps` bounded to realistic thresholds ($[0, 35\text{ m/s}]$).
-  - Spatial coordinates validated within legitimate solar installation geofences.
-- **Type Standardization**: Converted `timestamp` to standard datetime format; standardized binary targets (`unstable_flight`, `gps_anomaly`, `unstable_battery`) to integers (`0/1`).
+Time-Series Missing Imputation: Handled 1 missing observation in speed_diff and 9 missing observations in imu_var using forward linear interpolation, preserving physical motion continuity.
+
+Operational Boundary Verification:
+
+battery_level_pct constrained strictly to [0, 100%].
+
+wind_speed_mps bounded to realistic thresholds ([0, 35 m/s]).
+
+Spatial coordinates validated within legitimate solar installation geofences.
+
+Type Standardization: Converted timestamp to standard datetime format; standardized binary targets (unstable_flight, gps_anomaly, unstable_battery) to integers (0/1).
 
 ### 7.2. Core Feature Set
 
 | Feature Name | Type | Unit | Operational & Analytical Interpretation | Associated Target |
 | :--- | :--- | :--- | :--- | :--- |
-| `imu_var` | Float | $(\text{m/s}^2)^2$ | Rolling variance of accelerometer signals; measures turbulence shocks. | RQ1 (`unstable_flight`) |
-| `speed_diff` | Float | $\text{m/s}$ | First-order velocity step differential $\vert v_t - v_{t-1} \vert$. | RQ1 (`unstable_flight`) |
-| `battery_drop` | Float | $\%/\text{step}$ | Instantaneous discharge rate across consecutive time steps. | RQ3 (`unstable_battery`) |
-| `wind_speed_mps` | Float | $\text{m/s}$ | Ambient wind velocity recorded during flight segment. | RQ1 Covariate |
-| `ambient_temp_C` | Float | $^\circ\text{C}$ | Ambient field temperature. | RQ2 Covariate |
-| `thermal_signature_intensity` | Float | $\text{W/m}^2$ | Defect thermal radiation signal strength. | RQ2 Interaction |
-| `detection_confidence_avg` | Float | $[0.0, 1.0]$ | Mean confidence score output by defect detection model. | RQ2 Target |
-| `unstable_flight` | Binary | $0 / 1$ | Flight stability status (0: Nominal, 1: Instability event). | RQ1 Target |
+| `imu_var` | Float | (m/s2)2 | Rolling variance of accelerometer signals; measures turbulence shocks. | RQ1 (unstable_flight) |
+| `speed_diff` | Float | m/s | First-order velocity step differential. | RQ1 (unstable_flight) |
+| `battery_drop` | Float | %/step | Instantaneous discharge rate across consecutive time steps. | RQ3 (unstable_battery) |
+| `wind_speed_mps` | Float | m/s | Ambient wind velocity recorded during flight segment. | RQ1 Covariate |
+| `ambient_temp_C` | Float | deg C | Ambient field temperature. | RQ2 Covariate |
+| `thermal_signature_intensity` | Float | W/m2 | Defect thermal radiation signal strength. | RQ2 Interaction |
+| `detection_confidence_avg` | Float | [0.0, 1.0] | Mean confidence score output by defect detection model. | RQ2 Target |
+| `unstable_flight` | Binary | 0 / 1 | Flight stability status (0: Nominal, 1: Instability event). | RQ1 Target |
 
 ---
 
-## 8. Phase 6: Operationalize — ML-Driven Decision Support
+## 8. Phase 6: Operationalize -- ML-Driven Decision Support
 
 In the operational phase, trained predictive models generate real-time risk probabilities that drive actionable recommendations on the Fleet Analytics Dashboard:
 
 | Operational Recommendation | Data Analytics & ML-Driven Trigger | Analytical Support Component |
 | :--- | :--- | :--- |
-| **Emergency Landing** | RQ1 model predicts instability risk $P(\text{unstable\_flight}) \ge 0.85$ or extreme battery drop rate detected. | High-Risk Anomaly Detection (RQ1 & RQ3) |
-| **Return to Base** | RQ3 time-series model forecasts premature power depletion $\hat{y}_{\text{battery}} = 1$ before route completion. | Predictive Energy Degradation (RQ3) |
-| **Delay / Postpone Mission** | RQ2 regression model forecasts low detection confidence $\hat{y}_{\text{confidence}} < 0.50$ due to rain or fog. | Payload Inspection Quality Regression (RQ2) |
-| **Reroute / Adjust Altitude** | Sensor variance `imu_var` spikes significantly under high crosswinds (`wind_speed_mps` $> 12\text{ m/s}$). | Multivariate Interaction Analysis (RQ1) |
-| **Deploy Backup UAV** | Primary UAV is recalled early, leaving partial solar panel strings uninspected. | Fleet Efficiency Optimization |
-| **Continue Mission** | Instability risk is low ($P < 0.20$) and forecasted detection confidence meets benchmark ($\ge 0.65$). | Nominal Operational State |
-
+| Emergency Landing | RQ1 model predicts instability risk P(unstable_flight) >= 0.85 or extreme battery drop rate detected. | High-Risk Anomaly Detection (RQ1 & RQ3) |
+| Return to Base | RQ3 time-series model forecasts premature power depletion before route completion. | Predictive Energy Degradation (RQ3) |
+| Delay / Postpone Mission | RQ2 regression model forecasts low detection confidence due to rain or fog. | Payload Inspection Quality Regression (RQ2) |
+| Reroute / Adjust Altitude | Sensor variance imu_var spikes significantly under high crosswinds (> 12 m/s). | Multivariate Interaction Analysis (RQ1) |
+| Deploy Backup UAV | Primary UAV is recalled early, leaving partial solar panel strings uninspected. | Fleet Efficiency Optimization |
+| Continue Mission | Instability risk is low (P < 0.20) and forecasted detection confidence meets benchmark (>= 0.65). | Nominal Operational State |
 ---
-
-## 9. Repository Structure
-
+## 9.Repository Structure
 ```text
 DTA301_UAV_Analytics/
 │
 ├── data/
-│   ├── raw/                                 # Immutable raw datasets
+│   ├── raw/                                 # Immutable raw datasets (download via section 5.1)
 │   │   ├── engineered_features_labels.csv
 │   │   ├── uav_navigation_dataset.csv
 │   │   └── SurveilDrone-Net23.csv
@@ -176,7 +174,9 @@ DTA301_UAV_Analytics/
 ├── .gitignore                               # Git ignore rules for virtual environments & raw CSVs
 ├── requirements.txt                         # Pinned dependencies for reproducible execution
 └── README.md                                # Project overview and academic documentation
-10. Reproducibility & Setup Guide
+```
+---
+## 10. Reproducibility & Setup Guide
 This project strictly adheres to the course Reproducibility Framework:
 
 Global random seed fixed at random_seed = 42 across all scripts.
@@ -185,25 +185,26 @@ Consistent 80/20 Train-Test split for model evaluation.
 
 Execution Steps:
 Clone the repository:
-
-Bash
 git clone https://github.com/Win-NA/DTA301_UAV_Analytics.git
 cd DTA301_UAV_Analytics
-Install pinned dependencies:
 
-Bash
+Install pinned dependencies:
 pip install -r requirements.txt
+
+Download Raw Data:
+Download the datasets from the links in Section 5.1 and place them inside the data/raw/ folder.
+
 Execute Data Cleaning (Nhat Anh - Task Week 4):
-Open and execute notebooks/01_data_cleaning_nhatanh.ipynb to download raw files, perform time-series imputation, and generate data/processed/ files.
+Open and execute notebooks/01_data_cleaning_nhatanh.ipynb to clean missing values, enforce operational boundaries, and export to data/processed/.
 
 Execute Exploratory Data Analysis (Bao Long - Task Week 4):
-Open and execute notebooks/02_eda_baolong.ipynb to produce empirical statistics and export figures to reports/figures/.
+Open and execute notebooks/02_eda_baolong.ipynb to inspect distributions, generate correlation heatmaps, and export figures to reports/figures/.
+---
+## 11. Key Deliverables & Expected Outputs
+Cleaned Telemetry & Inspection Datasets: Fully imputed, validated, and normalized tabular data ready for statistical learning.
 
-11. Key Deliverables & Expected Outputs
-Cleaned Telemetry & Inspection Datasets: Fully imputed, validated, and normalized tabular data.
+Academic Data Dictionary: Formal reference document defining 20 features, physical units, and research question mapping.
 
-Academic Data Dictionary: Formal reference document defining 20 features, physical units, and research mapping.
-
-EDA Visualizations: Comprehensive distribution plots and correlation heatmaps aligned with RQ1–RQ3.
+EDA Visualizations: Comprehensive distribution plots and correlation heatmaps aligned with RQ1-RQ3.
 
 Predictive & Prescriptive Baseline: Documented modeling foundation ready for Phase 3 (Deliverable D2).
