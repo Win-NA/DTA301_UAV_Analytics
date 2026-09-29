@@ -1,0 +1,16 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Bỏ qua dữ liệu thô quá nặng (thành viên sẽ tải theo script trong README)
+data/raw/SurveilDrone-Net23.csv
+
+# Bỏ qua các file checkpoint tạm
+*/.ipynb_checkpoints/*
