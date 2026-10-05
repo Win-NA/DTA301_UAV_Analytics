@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DTA301 - Integrated Drone Surveillance Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        .card-custom {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            background: white;
+        }
+
+        .metric-box {
+            border-left: 4px solid #0d6efd;
+            padding: 10px;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+
+        #map {
+            height: 320px;
+            border-radius: 10px;
+        }
+
+        .alert-status {
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .img-drone {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .badge-rbl {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .btn-control {
+            border-radius: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="p-3">
+    <div class="container-fluid">
+        <!-- HEADER RBL METADATA -->
+        <div class="d-flex justify-content-between align-items-center mb-3 p-3 card-custom">
+            <div>
+                <span class="badge bg-primary badge-rbl">RESEARCH-BASED LEARNING (RBL)</span>
+                <h3 class="fw-bold text-dark mt-1 mb-0">🛸 HỆ THỐNG GIÁM SÁT DRONE & CẢNH BÁO AI THỜI GIAN THỰC</h3>
+                <small class="text-muted">Đồ án DTA301 | Tích hợp dữ liệu chuẩn SurveilDrone-Net23 (140.256
+                    Records)</small>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-success">API Status: Running</span><br>
+                <small class="text-muted" id="totalSamples">Dataset Size: -- records</small>
+            </div>
+        </div>
+
+        <!-- BẢNG ĐÁNH GIÁ MÔ HÌNH ML (RQ1 & RQ2) -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card-custom p-3">
+                    <h6 class="fw-bold text-primary mb-2">📊 RQ1 Performance (Random Forest Classifier)</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-box"><small class="text-muted">Accuracy</small>
+                                <h5 id="rq1Acc" class="fw-bold text-success mb-0">--%</h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box"><small class="text-muted">F1-Score</small>
+                                <h5 id="rq1F1" class="fw-bold text-info mb-0">--</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card-custom p-3">
+                    <h6 class="fw-bold text-primary mb-2">📈 RQ2 Performance (Random Forest Regressor)</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-box"><small class="text-muted">MAE Error</small>
+                                <h5 id="rq2Mae" class="fw-bold text-warning mb-0">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box"><small class="text-muted">RMSE Error</small>
+                                <h5 id="rq2Rmse" class="fw-bold text-danger mb-0">--</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG TƯƠNG TÁC THỜI GIAN THỰC (REALTIME METADATA) -->
+        <div class="card-custom p-3 mb-3">
+            <div class="row align-items-center g-3">
+                <div class="col-md-4">
+                    <label class="fw-bold mb-1">🕹️ Chọn Mẫu Dữ Liệu (Sample Index):</label>
+                    <input type="range" class="form-range" id="sampleSlider" min="0" max="1000" value="10"
+                        oninput="manualSliderChange(this.value)">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary" id="sliderVal">Sample Index: 10</span>
+                        <button id="btnAutoPlay" class="btn btn-sm btn-outline-primary btn-control"
+                            onclick="toggleAutoPlay()">▶ Tự Động Giả Lập Bay</button>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="row text-center">
+                        <div class="col"><small class="text-muted">📅 Timestamp / Mission</small>
+                            <h6 id="timeMissionVal" class="fw-bold text-dark mt-1">--</h6>
+                        </div>
+                        <div class="col"><small class="text-muted">🛸 Drone ID</small>
+                            <h5 id="droneIdVal" class="fw-bold text-dark">--</h5>
+                        </div>
+                        <div class="col"><small class="text-muted">🔋 Pin Drone</small>
+                            <h5 id="batteryVal" class="fw-bold text-success">--%</h5>
+                        </div>
+                        <div class="col"><small class="text-muted">💨 Tốc độ Gió</small>
+                            <h5 id="windVal" class="fw-bold text-info">-- m/s</h5>
+                        </div>
+                        <div class="col"><small class="text-muted">🌡️ Nhiệt độ</small>
+                            <h5 id="tempVal" class="fw-bold text-warning">-- °C</h5>
+                        </div>
+                        <div class="col"><small class="text-muted">🌤️ Thời tiết</small>
+                            <h5 id="weatherVal" class="fw-bold text-secondary">--</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BỘ LỌC CẢNH BÁO TỰ ĐỘNG -->
+        <div class="card-custom p-3 mb-3">
+            <div class="row align-items-center g-2">
+                <div class="col-md-3">
+                    <button class="btn btn-danger btn-sm w-100 btn-control" onclick="findDangerousSample()">🚨 Nhảy Đến
+                        Mẫu Cảnh Báo Nguy Cơ</button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-success btn-sm w-100 btn-control" onclick="findSafeSample()">✅ Nhảy Đến Mẫu
+                        An Toàn</button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-secondary btn-sm w-100 btn-control" onclick="randomSample()">🎲 Lấy Mẫu Ngẫu
+                        Nhiên</button>
+                </div>
+                <div class="col-md-3 text-end">
+                    <span class="badge bg-dark p-2" id="simStatus">Chế độ: Đang chờ thao tác</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CẢNH BÁO AI & GIÁM SÁT THỊ GIÁC -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card-custom p-3 h-100">
+                    <h6 class="fw-bold mb-2">📸 Visual Inspection (Camera Stream)</h6>
+                    <img id="droneImg" src="" class="img-drone mb-2" alt="Camera Stream">
+                    <small id="imgDesc" class="text-muted text-center d-block fw-semibold"></small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom p-3 h-100">
+                    <h6 class="fw-bold mb-2">⚠️ RQ1: Dự Báo An Toàn Bay (AI Warning)</h6>
+                    <div id="rq1Box" class="alert-status bg-light mt-2">Đang phân tích dữ liệu...</div>
+                    <small id="rq1Detail" class="text-muted d-block mt-2 text-center"></small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom p-3 h-100">
+                    <h6 class="fw-bold mb-2">🎯 RQ2: Dự Báo Độ Tin Cậy Nhận Diện (Confidence)</h6>
+                    <div class="text-center my-2">
+                        <h2 id="rq2Conf" class="fw-bold text-primary mb-0">--%</h2>
+                        <small class="text-muted">Predicted Confidence Index</small>
+                    </div>
+                    <div class="progress mt-2" style="height: 12px;">
+                        <div id="rq2Progress" class="progress-bar bg-primary" role="progressbar" style="width: 0%">
+                        </div>
+                    </div>
+                    <small id="rq2Objects" class="text-muted d-block mt-3 fw-semibold">Phát hiện: -- đối tượng</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢN ĐỒ VỊ TRÍ BAY GPS (RQ3) -->
+        <div class="card-custom p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0">📍 Bản Đồ Giám Sát Hành Trình GPS Live Tracking (RQ3 Usability)</h6>
+                <small class="text-primary fw-bold" id="latencyVal">Response Time: -- ms</small>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const API_BASE_URL = "http://127.0.0.1:8000";
+        let autoPlayTimer = null;
+        let isAutoPlaying = false;
+        let maxDatasetSize = 1000;
+
+        let map = L.map('map').setView([10.7769, 106.7009], 14);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 18,
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+        let marker = L.marker([10.7769, 106.7009]).addTo(map);
+
+        async function loadMetrics() {
+            try {
+                let res = await fetch(`${API_BASE_URL}/api/v1/metrics`);
+                let data = await res.json();
+
+                document.getElementById('rq1Acc').innerText = (data.rq1.accuracy * 100).toFixed(2) + "%";
+                document.getElementById('rq1F1').innerText = data.rq1.f1_score.toFixed(4);
+                document.getElementById('rq2Mae').innerText = data.rq2.mae.toFixed(4);
+                document.getElementById('rq2Rmse').innerText = data.rq2.rmse.toFixed(4);
+                document.getElementById('totalSamples').innerText = `Dataset Size: ${data.dataset_size.toLocaleString()} records`;
+
+                maxDatasetSize = data.dataset_size;
+                document.getElementById('sampleSlider').max = maxDatasetSize - 1;
+            } catch (e) { }
+        }
+
+        async function updateDashboard(idx) {
+            document.getElementById('sampleSlider').value = idx;
+            document.getElementById('sliderVal').innerText = "Sample Index: " + idx;
+            try {
+                let res = await fetch(`${API_BASE_URL}/api/v1/telemetry/${idx}`);
+                let data = await res.json();
+
+                let t = data.telemetry;
+                document.getElementById('timeMissionVal').innerText = `${data.timestamp} (${data.mission_id})`;
+                document.getElementById('droneIdVal').innerText = data.drone_id;
+                document.getElementById('batteryVal').innerText = t.battery_level_pct.toFixed(1) + "%";
+                document.getElementById('windVal').innerText = t.wind_speed_mps.toFixed(1) + " m/s";
+                document.getElementById('tempVal').innerText = t.ambient_temp_C.toFixed(1) + " °C";
+                document.getElementById('weatherVal').innerText = t.weather_condition;
+
+                document.getElementById('droneImg').src = data.image.url;
+                document.getElementById('imgDesc').innerText = "📸 " + data.image.desc;
+
+                let rq1Box = document.getElementById('rq1Box');
+                let rq1Detail = document.getElementById('rq1Detail');
+                let r1 = data.rq1_prediction;
+                if (r1.is_unstable === 1) {
+                    rq1Box.className = "alert-status bg-danger text-white";
+                    rq1Box.innerText = `🚨 CẢNH BÁO MẤT AN TOÀN BAY! (${(r1.risk_probability * 100).toFixed(1)}%)`;
+                    rq1Detail.innerText = `Phát hiện rủi ro: Pin yếu (${t.battery_level_pct.toFixed(1)}%) / Gió lớn (${t.wind_speed_mps.toFixed(1)}m/s) / Vùng cấm (${t.proximity_to_restricted_zone_m.toFixed(0)}m)`;
+                } else {
+                    rq1Box.className = "alert-status bg-success text-white";
+                    rq1Box.innerText = `✅ TRẠNG THÁI BAY AN TOÀN (${((1 - r1.risk_probability) * 100).toFixed(1)}%)`;
+                    rq1Detail.innerText = "Chỉ số Telemetry & Khoảng cách an toàn nằm trong ngưỡng.";
+                }
+
+                let conf = (data.rq2_prediction.predicted_confidence * 100).toFixed(1);
+                document.getElementById('rq2Conf').innerText = conf + "%";
+                document.getElementById('rq2Progress').style.width = conf + "%";
+                document.getElementById('rq2Objects').innerText = `Phát hiện: ${t.detected_object_count} vật thể/điểm lỗi tấm pin`;
+
+                marker.setLatLng([t.gps_lat, t.gps_lon]).bindPopup(`Mission: ${data.mission_id}<br>Drone: ${data.drone_id}<br>Time: ${data.timestamp}`).openPopup();
+                map.panTo([t.gps_lat, t.gps_lon]);
+                document.getElementById('latencyVal').innerText = `Response Time (RQ3): ${data.latency_ms} ms`;
+
+            } catch (e) { }
+        }
+
+        function manualSliderChange(val) {
+            if (isAutoPlaying) toggleAutoPlay();
+            updateDashboard(val);
+        }
+
+        function toggleAutoPlay() {
+            let btn = document.getElementById('btnAutoPlay');
+            let status = document.getElementById('simStatus');
+            if (isAutoPlaying) {
+                clearInterval(autoPlayTimer);
+                isAutoPlaying = false;
+                btn.className = "btn btn-sm btn-outline-primary btn-control";
+                btn.innerText = "▶ Tự Động Giả Lập Bay";
+                status.innerText = "Chế độ: Đã dừng giả lập";
+            } else {
+                isAutoPlaying = true;
+                btn.className = "btn btn-sm btn-warning btn-control";
+                btn.innerText = "⏸ Tạm Dừng Giả Lập";
+                status.innerText = "Chế độ: Đang mô phỏng chuyến bay realtime...";
+                autoPlayTimer = setInterval(() => {
+                    let currentVal = parseInt(document.getElementById('sampleSlider').value);
+                    let nextVal = (currentVal + 1) % maxDatasetSize;
+                    updateDashboard(nextVal);
+                }, 1500);
+            }
+        }
+
+        async function findDangerousSample() {
+            if (isAutoPlaying) toggleAutoPlay();
+            document.getElementById('simStatus').innerText = "Chế độ: Đang tìm mẫu mất an toàn...";
+            for (let i = 0; i < 50; i++) {
+                let randIdx = Math.floor(Math.random() * maxDatasetSize);
+                let res = await fetch(`${API_BASE_URL}/api/v1/telemetry/${randIdx}`);
+                let data = await res.json();
+                if (data.rq1_prediction.is_unstable === 1) {
+                    updateDashboard(randIdx);
+                    document.getElementById('simStatus').innerText = "Chế độ: Đã tìm thấy mẫu nguy cơ!";
+                    return;
+                }
+            }
+        }
+
+        async function findSafeSample() {
+            if (isAutoPlaying) toggleAutoPlay();
+            document.getElementById('simStatus').innerText = "Chế độ: Đang tìm mẫu an toàn...";
+            for (let i = 0; i < 50; i++) {
+                let randIdx = Math.floor(Math.random() * maxDatasetSize);
+                let res = await fetch(`${API_BASE_URL}/api/v1/telemetry/${randIdx}`);
+                let data = await res.json();
+                if (data.rq1_prediction.is_unstable === 0) {
+                    updateDashboard(randIdx);
+                    document.getElementById('simStatus').innerText = "Chế độ: Đã tìm thấy mẫu an toàn!";
+                    return;
+                }
+            }
+        }
+
+        function randomSample() {
+            if (isAutoPlaying) toggleAutoPlay();
+            let randIdx = Math.floor(Math.random() * maxDatasetSize);
+            updateDashboard(randIdx);
+            document.getElementById('simStatus').innerText = "Chế độ: Chọn mẫu ngẫu nhiên";
+        }
+
+        loadMetrics();
+        updateDashboard(10);
+    </script>
+</body>
+
+</html>
