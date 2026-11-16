@@ -1,4 +1,7 @@
 
+import os
+from pathlib import Path
+import joblib
 import numpy as np
 import pandas as pd
 
@@ -37,7 +40,21 @@ class RQ2Service:
         self.model = None
         self.metrics = {}
 
-        self.train()
+        actual_model_path = Path(self.model_path)
+        if not actual_model_path.is_absolute():
+            actual_model_path = Path(__file__).resolve().parent.parent / actual_model_path
+
+        if actual_model_path.exists():
+            print(f"Loading RQ2 model from: {actual_model_path}")
+            saved = joblib.load(actual_model_path)
+            if isinstance(saved, dict) and "model" in saved:
+                self.model = saved["model"]
+                self.metrics = saved.get("metrics", {})
+            else:
+                self.model = saved
+                self.metrics = {}
+        else:
+            self.train()
 
     def train(self):
 
@@ -52,8 +69,10 @@ class RQ2Service:
         baseline.fit(X_train, y_train)
 
         self.model = RandomForestRegressor(
-            n_estimators=100,
-            random_state=42
+            n_estimators=60,
+            max_depth=16,
+            random_state=42,
+            n_jobs=-1
         )
 
         self.model.fit(X_train, y_train)
@@ -69,17 +88,31 @@ class RQ2Service:
         print("\n========== RQ2 ==========")
         print(self.metrics)
 
-        save_model(self.model, "rq2_regressor.pkl")
+        actual_model_path = Path(self.model_path)
+        if not actual_model_path.is_absolute():
+            actual_model_path = Path(__file__).resolve().parent.parent / actual_model_path
+        joblib.dump({
+            "model": self.model,
+            "features": self.FEATURES,
+            "metrics": self.metrics
+        }, actual_model_path, compress=3)
 
     def predict(self, current):
 
+        weather_map = {"Clear": 0, "Cloudy": 1, "Fog": 2, "Rain": 3}
+        raw_weather = current.get("weather_condition", "Clear")
+        if isinstance(raw_weather, str):
+            weather_code = weather_map.get(raw_weather, 0)
+        else:
+            weather_code = int(raw_weather)
+
         input_data = pd.DataFrame([{
-            "ambient_temp_C": current.get("ambient_temp_C", 25),
-            "weather_condition": current.get("weather_condition_code", 0),
-            "thermal_signature_intensity": current.get(
-                "thermal_signature_intensity", 0
-            ),
-            "wind_speed_mps": current.get("wind_speed_mps", 0)
+            "ambient_temp_C": float(current.get("ambient_temp_C", 25)),
+            "weather_condition": weather_code,
+            "thermal_signature_intensity": float(current.get(
+                "thermal_signature_intensity", 100
+            )),
+            "wind_speed_mps": float(current.get("wind_speed_mps", 0))
         }])
 
         prediction = float(self.model.predict(input_data)[0])
@@ -87,7 +120,8 @@ class RQ2Service:
         return {
             "predicted_confidence": float(
                 np.clip(prediction, 0, 1)
-            )
+            ),
+            "actual_confidence": float(current.get("detection_confidence_avg", prediction))
         }
 
     def get_metrics(self):

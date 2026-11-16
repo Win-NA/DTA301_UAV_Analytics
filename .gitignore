@@ -15,5 +15,3 @@ data/raw/SurveilDrone-Net23.csv
 # Bỏ qua các file checkpoint tạm
 */.ipynb_checkpoints/*
 
-*.pkl
-models/*.pkl

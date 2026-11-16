@@ -1,6 +1,7 @@
 
 import os
 import time
+import random
 import pandas as pd
 
 from fastapi import FastAPI, HTTPException
@@ -136,6 +137,7 @@ def get_metrics():
         "rq1": rq1_service.get_metrics(),
         "rq2": rq2_service.get_metrics(),
         "rq3": rq3_service.get_metrics(),
+        "rq3_summary": rq3_service.get_consumption_summary() if rq3_service.available else {},
         "dataset_size": len(df)
     }
 
@@ -335,6 +337,22 @@ def get_telemetry_sample(idx: int):
 
             "detected_object_count": int(
                 current.get("detected_object_count", 0)
+            ),
+
+            "target_type": str(
+                current.get("target_type", "Unknown")
+            ),
+
+            "thermal_signature_intensity": float(
+                current.get("thermal_signature_intensity", 100.0)
+            ),
+
+            "detection_confidence_avg": float(
+                current.get("detection_confidence_avg", 0.65)
+            ),
+
+            "power_consumption_watts": float(
+                current.get("power_consumption_watts", 150.0)
             )
         },
 
@@ -361,8 +379,19 @@ def get_telemetry_sample(idx: int):
 
 
 # ============================================================
-# DATASET INFORMATION
+# DATASET INFORMATION & DRONE FLEET
 # ============================================================
+
+# Precompute chronological indices for each drone
+drone_ids = sorted([str(d) for d in df["drone_id"].dropna().unique().tolist()])
+drone_indices = {}
+for d in drone_ids:
+    sub = df[df["drone_id"] == d]
+    if "timestamp" in sub.columns:
+        drone_indices[d] = [int(x) for x in sub.sort_values("timestamp").index.tolist()]
+    else:
+        drone_indices[d] = [int(x) for x in sub.index.tolist()]
+
 
 @app.get("/api/v1/datasets")
 def get_datasets():
@@ -375,3 +404,100 @@ def get_datasets():
         "rq2_features": rq2_service.FEATURES,
         "rq3_features": rq3_service.FEATURES
     }
+
+
+@app.get("/api/v1/drones")
+def get_drones():
+    """Return all unique drones and their precomputed sample counts."""
+    return [
+        {
+            "drone_id": d,
+            "total_samples": len(drone_indices[d]),
+            "first_index": drone_indices[d][0] if drone_indices[d] else 0
+        }
+        for d in drone_ids
+    ]
+
+
+@app.get("/api/v1/drone/{drone_id}/indices")
+def get_drone_indices(drone_id: str):
+    """Return the full chronological list of row indices for a specific drone."""
+    if drone_id not in drone_indices:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Drone '{drone_id}' not found in fleet"
+        )
+    return {
+        "drone_id": drone_id,
+        "indices": drone_indices[drone_id],
+        "total": len(drone_indices[drone_id])
+    }
+
+
+@app.get("/api/v1/sample/risk")
+def get_risk_sample(drone_id: str = None):
+    """Find a random unstable/risky flight telemetry sample."""
+    target_df = (
+        df[df["drone_id"] == drone_id]
+        if (drone_id and drone_id != "ALL" and drone_id in drone_indices)
+        else df
+    )
+    risk_rows = target_df[target_df["unstable_flight"] == 1]
+    if risk_rows.empty:
+        risk_rows = df[df["unstable_flight"] == 1]
+    chosen = risk_rows.sample(n=1)
+    return {
+        "index": int(chosen.index[0]),
+        "drone_id": str(chosen["drone_id"].iloc[0])
+    }
+
+
+@app.get("/api/v1/sample/safe")
+def get_safe_sample(drone_id: str = None):
+    """Find a random stable/safe flight telemetry sample."""
+    target_df = (
+        df[df["drone_id"] == drone_id]
+        if (drone_id and drone_id != "ALL" and drone_id in drone_indices)
+        else df
+    )
+    safe_rows = target_df[target_df["unstable_flight"] == 0]
+    if safe_rows.empty:
+        safe_rows = df[df["unstable_flight"] == 0]
+    chosen = safe_rows.sample(n=1)
+    return {
+        "index": int(chosen.index[0]),
+        "drone_id": str(chosen["drone_id"].iloc[0])
+    }
+
+
+@app.get("/api/v1/sample/battery_anomaly")
+def get_battery_anomaly_sample(drone_id: str = None):
+    """Find an actual sample where RQ3 predicts energy anomaly spike (unstable_battery == 1)."""
+    if rq3_service.available and len(rq3_service.labels) > 0:
+        anom_indices = rq3_service.labels[rq3_service.labels == 1].index
+        if drone_id and drone_id != "ALL" and drone_id in drone_indices:
+            anom_indices = [idx for idx in anom_indices if df.loc[idx, "drone_id"] == drone_id]
+        if len(anom_indices) > 0:
+            chosen_idx = int(random.choice(list(anom_indices)))
+            return {
+                "index": chosen_idx,
+                "drone_id": str(df.loc[chosen_idx, "drone_id"]),
+                "battery_level_pct": float(df.loc[chosen_idx, "battery_level_pct"])
+            }
+
+    target_df = (
+        df[df["drone_id"] == drone_id]
+        if (drone_id and drone_id != "ALL" and drone_id in drone_indices)
+        else df
+    )
+    anomaly_rows = target_df[target_df["battery_level_pct"] < 20]
+    if anomaly_rows.empty:
+        anomaly_rows = df[df["battery_level_pct"] < 20]
+    chosen = anomaly_rows.sample(n=1)
+    return {
+        "index": int(chosen.index[0]),
+        "drone_id": str(chosen["drone_id"].iloc[0]),
+        "battery_level_pct": float(chosen["battery_level_pct"].iloc[0])
+    }
+
+

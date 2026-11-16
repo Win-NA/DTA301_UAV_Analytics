@@ -1,2633 +1,1657 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DTA301 - UAV Telemetry Analytics & Risk Monitoring</title>
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>DTA301 - Drone Surveillance Dashboard</title>
-
-    <!-- Bootstrap -->
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-
         :root {
             --primary: #0d6efd;
-            --background: #f0f2f5;
-            --card-radius: 14px;
+            --background: #f1f4f8;
+            --card-radius: 12px;
         }
 
         body {
             background-color: var(--background);
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #212529;
         }
 
         .card-custom {
-            background: white;
-            border: none;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: var(--card-radius);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .dashboard-title {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .badge-rbl {
-            font-size: 0.8rem;
-            padding: 7px 12px;
-            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            letter-spacing: 0.05em;
         }
 
         .metric-box {
             border-left: 4px solid var(--primary);
-            padding: 15px 10px;
+            padding: 14px 12px;
             border-radius: 8px;
-            background: #f8f9fa;
+            background: #f8fafc;
             height: 100%;
         }
 
         .metric-value {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 700;
             margin-bottom: 0;
         }
 
         .section-title {
             font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 15px;
+            color: #1e293b;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 12px;
         }
 
         .btn-control {
-            border-radius: 20px;
+            border-radius: 6px;
             font-weight: 600;
+            font-size: 0.85rem;
         }
 
         .alert-status {
-            padding: 16px;
-            border-radius: 10px;
+            padding: 14px;
+            border-radius: 8px;
             font-weight: 700;
             text-align: center;
-            min-height: 65px;
+            min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
         }
 
         .img-drone {
             width: 100%;
-            height: 220px;
+            height: 210px;
             object-fit: cover;
-            border-radius: 10px;
-            border: 1px solid #dee2e6;
-            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
         }
 
         .image-placeholder {
             width: 100%;
-            height: 220px;
+            height: 210px;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 20px;
-            background: #f8f9fa;
-            border: 1px dashed #ced4da;
-            border-radius: 10px;
-            color: #6c757d;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            color: #64748b;
+            font-size: 0.9rem;
         }
 
         .telemetry-value {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 700;
         }
 
         .telemetry-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 12px;
             height: 100%;
         }
 
         .chart-container {
             position: relative;
-            height: 300px;
+            height: 280px;
             width: 100%;
         }
 
         .progress {
-            border-radius: 20px;
+            border-radius: 6px;
+            background-color: #e2e8f0;
         }
 
         .progress-bar {
-            transition: width 0.3s ease;
+            transition: width 0.3s ease, background-color 0.3s ease;
         }
 
         #errorMessage {
             display: none;
         }
 
-        .small-note {
-            color: #6c757d;
-            font-size: 0.8rem;
+        .status-badge {
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 6px;
         }
-
-        @media (max-width: 768px) {
-
-            .dashboard-title {
-                font-size: 1.1rem;
-            }
-
-            .chart-container {
-                height: 250px;
-            }
-
-        }
-
     </style>
-
 </head>
-
 
 <body class="p-3">
 
-<div class="container-fluid">
+    <div class="container-fluid">
 
-
-    <!-- ================================================= -->
-    <!-- HEADER -->
-    <!-- ================================================= -->
-
-    <header class="card-custom p-3 mb-3">
-
-        <div class="d-flex flex-wrap justify-content-between
-                    align-items-center gap-3">
-
-            <div>
-
-                <span class="badge bg-primary badge-rbl">
-                    RESEARCH-BASED LEARNING (RBL)
-                </span>
-
-                <h3 class="dashboard-title mt-2 mb-1">
-                    🛸 HỆ THỐNG GIÁM SÁT DRONE & CẢNH BÁO AI
-                </h3>
-
-                <small class="text-muted">
-                    Đồ án DTA301 | SurveilDrone-Net23 Dataset
-                </small>
-
-            </div>
-
-            <div class="text-end">
-
-                <span class="badge bg-secondary api-status"
-                      id="apiStatus">
-
-                    API Status: Checking...
-
-                </span>
-
-                <div class="mt-2">
-
-                    <small class="text-muted"
-                           id="totalSamples">
-
-                        Dataset Size: Loading...
-
+        <!-- ================================================= -->
+        <!-- HEADER -->
+        <!-- ================================================= -->
+        <header class="card-custom p-3 mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <span class="badge bg-primary badge-rbl">RESEARCH-BASED LEARNING (RBL)</span>
+                    <h3 class="dashboard-title mt-2 mb-1">
+                        HỆ THỐNG GIÁM SÁT UAV TELEMETRY & CHẨN ĐOÁN RỦI RO
+                    </h3>
+                    <small class="text-muted">
+                        Đồ án DTA301 - Nhóm 5 | SurveilDrone-Net23 Dataset
                     </small>
-
                 </div>
 
-            </div>
-
-        </div>
-
-    </header>
-
-
-    <!-- ================================================= -->
-    <!-- ERROR MESSAGE -->
-    <!-- ================================================= -->
-
-    <div id="errorMessage"
-         class="alert alert-danger mb-3">
-
-        <strong>Dashboard Error:</strong>
-
-        <span id="errorText"></span>
-
-    </div>
-
-
-    <!-- ================================================= -->
-    <!-- RQ1 AND RQ2 MODEL PERFORMANCE -->
-    <!-- ================================================= -->
-
-    <div class="row g-3 mb-3">
-
-
-        <!-- RQ1 -->
-
-        <div class="col-lg-6">
-
-            <div class="card-custom p-3 h-100">
-
-                <h6 class="section-title">
-                    📊 RQ1 Performance - Flight Stability
-                </h6>
-
-                <div class="row g-2 text-center">
-
-                    <div class="col-4">
-
-                        <div class="metric-box">
-
-                            <small class="text-muted">
-                                Accuracy
-                            </small>
-
-                            <h5 id="rq1Acc"
-                                class="metric-value text-success">
-
-                                --
-
-                            </h5>
-
-                        </div>
-
-                    </div>
-
-                    <div class="col-4">
-
-                        <div class="metric-box">
-
-                            <small class="text-muted">
-                                F1-Score
-                            </small>
-
-                            <h5 id="rq1F1"
-                                class="metric-value text-info">
-
-                                --
-
-                            </h5>
-
-                        </div>
-
-                    </div>
-
-                    <div class="col-4">
-
-                        <div class="metric-box">
-
-                            <small class="text-muted">
-                                ROC-AUC
-                            </small>
-
-                            <h5 id="rq1AUC"
-                                class="metric-value text-primary">
-
-                                --
-
-                            </h5>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- RQ2 -->
-
-        <div class="col-lg-6">
-
-            <div class="card-custom p-3 h-100">
-
-                <h6 class="section-title">
-                    📈 RQ2 Performance - Detection Confidence
-                </h6>
-
-                <div class="row g-2 text-center">
-
-                    <div class="col-6">
-
-                        <div class="metric-box">
-
-                            <small class="text-muted">
-                                MAE Error
-                            </small>
-
-                            <h5 id="rq2Mae"
-                                class="metric-value text-warning">
-
-                                --
-
-                            </h5>
-
-                        </div>
-
-                    </div>
-
-                    <div class="col-6">
-
-                        <div class="metric-box">
-
-                            <small class="text-muted">
-                                RMSE Error
-                            </small>
-
-                            <h5 id="rq2Rmse"
-                                class="metric-value text-danger">
-
-                                --
-
-                            </h5>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- ================================================= -->
-    <!-- TELEMETRY -->
-    <!-- ================================================= -->
-
-    <div class="card-custom p-3 mb-3">
-
-        <h6 class="section-title">
-            🛰️ Real-Time Drone Telemetry
-        </h6>
-
-        <div class="row align-items-center g-3">
-
-
-            <!-- SAMPLE SLIDER -->
-
-            <div class="col-lg-4">
-
-                <label for="sampleSlider"
-                       class="fw-bold mb-2">
-
-                    🕹️ Select Dataset Sample
-
-                </label>
-
-                <input
-                    type="range"
-                    class="form-range"
-                    id="sampleSlider"
-                    min="0"
-                    max="0"
-                    value="0">
-
-                <div class="d-flex justify-content-between
-                            align-items-center">
-
-                    <span id="sliderVal"
-                          class="fw-bold text-primary">
-
-                        Sample Index: 0
-
+                <div class="text-end">
+                    <span class="badge bg-secondary status-badge" id="apiStatus">
+                        API Status: Checking...
                     </span>
-
-                    <button
-                        id="btnAutoPlay"
-                        class="btn btn-sm btn-outline-primary btn-control">
-
-                        ▶ Start Simulation
-
-                    </button>
-
+                    <div class="mt-2">
+                        <small class="text-muted" id="totalSamples">
+                            Dataset Size: Loading...
+                        </small>
+                    </div>
                 </div>
-
             </div>
+        </header>
 
-
-            <!-- TELEMETRY VALUES -->
-
-            <div class="col-lg-8">
-
-                <div class="row g-2 text-center">
-
-
-                    <div class="col-md-4 col-6">
-
-                        <div class="telemetry-card">
-
-                            <small class="text-muted">
-                                📅 Timestamp
-                            </small>
-
-                            <div id="timeMissionVal"
-                                 class="telemetry-value">
-
-                                --
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="col-md-4 col-6">
-
-                        <div class="telemetry-card">
-
-                            <small class="text-muted">
-                                🛸 Drone ID
-                            </small>
-
-                            <div id="droneIdVal"
-                                 class="telemetry-value">
-
-                                --
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="col-md-4 col-6">
-
-                        <div class="telemetry-card">
-
-                            <small class="text-muted">
-                                🔋 Battery
-                            </small>
-
-                            <div id="batteryVal"
-                                 class="telemetry-value text-success">
-
-                                --%
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="col-md-4 col-6">
-
-                        <div class="telemetry-card">
-
-                            <small class="text-muted">
-                                💨 Wind Speed
-                            </small>
-
-                            <div id="windVal"
-                                 class="telemetry-value text-info">
-
-                                -- m/s
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="col-md-4 col-6">
-
-                        <div class="telemetry-card">
-
-                            <small class="text-muted">
-                                🌡️ Temperature
-                            </small>
-
-                            <div id="tempVal"
-                                 class="telemetry-value text-warning">
-
-                                -- °C
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="col-md-4 col-6">
-
-                        <div class="telemetry-card">
-
-                            <small class="text-muted">
-                                🌤️ Weather
-                            </small>
-
-                            <div id="weatherVal"
-                                 class="telemetry-value">
-
-                                --
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+        <!-- ================================================= -->
+        <!-- ERROR MESSAGE -->
+        <!-- ================================================= -->
+        <div id="errorMessage" class="alert alert-danger mb-3 py-2">
+            <strong>System Error:</strong>
+            <span id="errorText"></span>
         </div>
 
-    </div>
-
-
-    <!-- ================================================= -->
-    <!-- SAMPLE CONTROLS -->
-    <!-- ================================================= -->
-
-    <div class="card-custom p-3 mb-3">
-
-        <div class="row g-2 align-items-center">
-
-            <div class="col-lg-3 col-md-6">
-
-                <button
-                    id="btnDanger"
-                    class="btn btn-danger btn-sm w-100 btn-control">
-
-                    🚨 Find Risk Sample
-
-                </button>
-
-            </div>
-
-            <div class="col-lg-3 col-md-6">
-
-                <button
-                    id="btnSafe"
-                    class="btn btn-success btn-sm w-100 btn-control">
-
-                    ✅ Find Safe Sample
-
-                </button>
-
-            </div>
-
-            <div class="col-lg-3 col-md-6">
-
-                <button
-                    id="btnRandom"
-                    class="btn btn-secondary btn-sm w-100 btn-control">
-
-                    🎲 Random Sample
-
-                </button>
-
-            </div>
-
-            <div class="col-lg-3 col-md-6 text-center">
-
-                <span class="badge bg-dark p-2"
-                      id="simStatus">
-
-                    Waiting for interaction
-
-                </span>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- ================================================= -->
-    <!-- AI PREDICTIONS -->
-    <!-- ================================================= -->
-
-    <div class="row g-3 mb-3">
-
-
-        <!-- IMAGE -->
-
-        <div class="col-lg-4">
-
-            <div class="card-custom p-3 h-100">
-
-                <h6 class="section-title">
-                    📸 Visual Inspection
-                </h6>
-
-                <img
-                    id="droneImg"
-                    src=""
-                    class="img-drone mb-2"
-                    alt="Drone Camera Stream"
-                    style="display:none;">
-
-                <div id="imagePlaceholder"
-                     class="image-placeholder mb-2">
-
-                    No camera image associated with this record.
-
-                </div>
-
-                <small
-                    id="imgDesc"
-                    class="text-muted text-center d-block fw-semibold">
-
-                    No image loaded
-
-                </small>
-
-            </div>
-
-        </div>
-
-
-        <!-- RQ1 -->
-
-        <div class="col-lg-4">
-
-            <div class="card-custom p-3 h-100">
-
-                <h6 class="section-title">
-                    ⚠️ RQ1 - Flight Stability Prediction
-                </h6>
-
-                <div
-                    id="rq1Box"
-                    class="alert-status bg-light mt-2">
-
-                    Waiting for telemetry...
-
-                </div>
-
-                <small
-                    id="rq1Detail"
-                    class="text-muted d-block mt-3 text-center">
-
-                    --
-
-                </small>
-
-            </div>
-
-        </div>
-
-
-        <!-- RQ2 -->
-
-        <div class="col-lg-4">
-
-            <div class="card-custom p-3 h-100">
-
-                <h6 class="section-title">
-                    🎯 RQ2 - Detection Confidence
-                </h6>
-
-                <div class="text-center my-3">
-
-                    <h2
-                        id="rq2Conf"
-                        class="fw-bold text-primary mb-0">
-
-                        --%
-
-                    </h2>
-
-                    <small class="text-muted">
-                        Predicted Confidence Index
-                    </small>
-
-                </div>
-
-                <div
-                    class="progress mt-3"
-                    style="height: 14px;">
-
-                    <div
-                        id="rq2Progress"
-                        class="progress-bar bg-primary"
-                        role="progressbar"
-                        style="width: 0%"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-valuenow="0">
-
-                    </div>
-
-                </div>
-
-                <small
-                    id="rq2Objects"
-                    class="text-muted d-block mt-3 fw-semibold">
-
-                    Detected objects: --
-
-                </small>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- ================================================= -->
-    <!-- RQ3 BATTERY ANALYTICS -->
-    <!-- ================================================= -->
-
-    <div class="card-custom p-3 mb-3">
-
-        <div class="d-flex flex-wrap justify-content-between
-                    align-items-center mb-3 gap-2">
-
-            <div>
-
-                <h5 class="section-title mb-1">
-
-                    🔋 RQ3 - Battery Consumption & Abnormal Energy Usage
-
-                </h5>
-
-                <small class="text-muted">
-
-                    UAV telemetry and environmental conditions
-
-                </small>
-
-            </div>
-
-            <span id="rq3SourceBadge"
-                  class="badge bg-secondary">
-
-                Target source: --
-
-            </span>
-
-        </div>
-
-
-        <!-- RQ3 KPI -->
-
+        <!-- ================================================= -->
+        <!-- MODEL PERFORMANCE BENCHMARKS (RQ1, RQ2 & RQ3) -->
+        <!-- ================================================= -->
         <div class="row g-3 mb-3">
-
-
-            <div class="col-lg col-md-4 col-6">
-
-                <div class="metric-box">
-
-                    <small class="text-muted">
-                        🔋 Battery Level
-                    </small>
-
-                    <h4 id="rq3Battery"
-                        class="metric-value text-success">
-
-                        --%
-
-                    </h4>
-
-                </div>
-
-            </div>
-
-
-
-
-
-
-
-            <div class="col-lg col-md-4 col-6">
-
-                <div class="metric-box">
-
-                    <small class="text-muted">
-                        🚨 Abnormal Probability
-                    </small>
-
-                    <h4 id="rq3Probability"
-                        class="metric-value text-danger">
-
-                        --%
-
-                    </h4>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-lg col-md-4 col-6">
-
-                <div class="metric-box">
-
-                    <small class="text-muted">
-                        📊 Energy Status
-                    </small>
-
-                    <h4 id="rq3Status"
-                        class="metric-value">
-
-                        --
-
-                    </h4>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- WARNING -->
-
-        <div
-            id="rq3Warning"
-            class="alert alert-secondary">
-
-            Waiting for RQ3 prediction...
-
-        </div>
-
-
-        <!-- BATTERY HISTORY AND EVALUATION -->
-
-        <div class="row g-3">
-
-
-            <div class="col-lg-8">
-
-                <div class="card-custom border p-3 h-100">
-
-                    <h6 class="section-title">
-
-                        📈 Battery Consumption Trend
-
-                    </h6>
-
-                    <div class="chart-container">
-
-                        <canvas id="batteryChart"></canvas>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
+            <!-- RQ1 -->
             <div class="col-lg-4">
-
-                <div class="card-custom border p-3 h-100">
-
-                    <h6 class="section-title">
-
-                        🎯 RQ3 Model Evaluation
-
-                    </h6>
-
-
-                    <div class="d-flex justify-content-between
-                                py-2 border-bottom">
-
-                        <span>Accuracy</span>
-
-                        <strong id="rq3Accuracy">--</strong>
-
+                <div class="card-custom p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="section-title mb-0">
+                            RQ1 Benchmark - Stability
+                        </h6>
+                        <span class="badge bg-light text-secondary border">Offline Test Set</span>
                     </div>
-
-
-                    <div class="d-flex justify-content-between
-                                py-2 border-bottom">
-
-                        <span>Precision</span>
-
-                        <strong id="rq3Precision">--</strong>
-
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">Accuracy</small>
+                                <h5 id="rq1Acc" class="metric-value text-success">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">F1-Score</small>
+                                <h5 id="rq1F1" class="metric-value text-primary">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">ROC-AUC</small>
+                                <h5 id="rq1AUC" class="metric-value text-info">--</h5>
+                            </div>
+                        </div>
                     </div>
-
-
-                    <div class="d-flex justify-content-between
-                                py-2 border-bottom">
-
-                        <span>Recall</span>
-
-                        <strong id="rq3Recall">--</strong>
-
-                    </div>
-
-
-                    <div class="d-flex justify-content-between
-                                py-2 border-bottom">
-
-                        <span>F1-Score</span>
-
-                        <strong id="rq3F1">--</strong>
-
-                    </div>
-
-
-                    <small
-                        id="rq3EvalNote"
-                        class="text-muted d-block mt-3">
-
-                        Waiting for evaluation...
-
-                    </small>
-
                 </div>
-
             </div>
 
+            <!-- RQ2 -->
+            <div class="col-lg-4">
+                <div class="card-custom p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="section-title mb-0">
+                            RQ2 Benchmark - Confidence
+                        </h6>
+                        <span class="badge bg-light text-secondary border">Offline Test Set</span>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">MAE Error</small>
+                                <h5 id="rq2Mae" class="metric-value text-warning">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">RMSE Error</small>
+                                <h5 id="rq2Rmse" class="metric-value text-danger">--</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RQ3 -->
+            <div class="col-lg-4">
+                <div class="card-custom p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="section-title mb-0">
+                            RQ3 Benchmark - Anomaly
+                        </h6>
+                        <span class="badge bg-light text-secondary border">Offline Test Set</span>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-3">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">Acc</small>
+                                <h5 id="rq3Accuracy" class="metric-value text-success" style="font-size: 1rem;">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">Prec</small>
+                                <h5 id="rq3Precision" class="metric-value text-primary" style="font-size: 1rem;">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">Recall</small>
+                                <h5 id="rq3Recall" class="metric-value text-secondary" style="font-size: 1rem;">--</h5>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="metric-box">
+                                <small class="text-muted d-block mb-1">F1</small>
+                                <h5 id="rq3F1" class="metric-value text-warning" style="font-size: 1rem;">--</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
+        <!-- ================================================= -->
+        <!-- UAV TELEMETRY INSPECTOR & DIAGNOSTIC AUDIT -->
+        <!-- ================================================= -->
+        <div class="card-custom p-3 mb-3">
+            <h6 class="section-title">
+                Telemetry Record Inspector & Flight Telemetry
+            </h6>
 
-        <!-- ENVIRONMENTAL ANALYSIS -->
+            <div class="row g-3 align-items-center">
+                <!-- CONTROLS -->
+                <div class="col-lg-5">
+                    <div class="p-2 border rounded bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="droneSelect" class="fw-bold small text-secondary m-0">
+                                Select Drone Unit
+                            </label>
+                            <span class="badge bg-secondary" id="droneSampleCountBadge">
+                                Fleet ready
+                            </span>
+                        </div>
+                        <select id="droneSelect" class="form-select form-select-sm mb-2 fw-semibold">
+                            <option value="ALL">All Fleet Drones (Global Sequence)</option>
+                        </select>
 
-        <div class="row g-3 mt-1">
+                        <!-- Direct Index Navigation -->
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text fw-semibold" id="inputLabel">Observation Step</span>
+                            <button class="btn btn-outline-secondary" id="btnPrevStep"
+                                title="Previous observation of this drone">&lt;</button>
+                            <input type="number" id="sampleInput" class="form-control text-center fw-bold" min="1"
+                                value="1" placeholder="1">
+                            <button class="btn btn-outline-secondary" id="btnNextStep"
+                                title="Next observation of this drone">&gt;</button>
+                            <button class="btn btn-primary" id="btnApplyIndex">Go</button>
+                        </div>
 
+                        <!-- Slider Navigation -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted fw-bold">Timeline Scrubber</small>
+                            <span id="sliderVal" class="badge bg-white text-dark border">
+                                Record: 0
+                            </span>
+                        </div>
+                        <input type="range" class="form-range" id="sampleSlider" min="0" max="0" value="0">
+                    </div>
+                </div>
 
-            <div class="col-lg-6">
+                <!-- TELEMETRY VALUES -->
+                <div class="col-lg-7">
+                    <div class="row g-2 text-center">
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Timestamp & Mission</small>
+                                <div id="timeMissionVal" class="telemetry-value text-dark text-truncate"
+                                    style="font-size: 0.95rem;">--</div>
+                            </div>
+                        </div>
 
-                <div class="card-custom border p-3 h-100">
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Drone Identifier</small>
+                                <div id="droneIdVal" class="telemetry-value text-dark">--</div>
+                            </div>
+                        </div>
 
-                    <h6 class="section-title">
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Battery Level</small>
+                                <div id="batteryVal" class="telemetry-value">--%</div>
+                            </div>
+                        </div>
 
-                        🌤️ Wind Speed vs Power Consumption
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Wind Speed</small>
+                                <div id="windVal" class="telemetry-value">-- m/s</div>
+                            </div>
+                        </div>
 
-                    </h6>
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Ambient Temperature</small>
+                                <div id="tempVal" class="telemetry-value">-- °C</div>
+                            </div>
+                        </div>
 
-                    <div class="chart-container">
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Zone Proximity</small>
+                                <div id="proximityVal" class="telemetry-value">-- m</div>
+                            </div>
+                        </div>
 
-                        <canvas id="environmentChart"></canvas>
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Flight Altitude</small>
+                                <div id="altitudeVal" class="telemetry-value text-dark">-- m</div>
+                            </div>
+                        </div>
 
+                        <div class="col-md-3 col-6">
+                            <div class="telemetry-card">
+                                <small class="text-muted d-block text-truncate">Weather Condition</small>
+                                <div id="weatherVal" class="telemetry-value text-dark text-truncate">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUDIT ACTIONS -->
+            <div class="border-top pt-3 mt-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-lg-3 col-md-6">
+                        <button id="btnDanger" class="btn btn-outline-danger btn-sm w-100 btn-control">
+                            Inspect Risk Sample (RQ1 Hazard)
+                        </button>
                     </div>
 
-                    <small class="text-muted">
+                    <div class="col-lg-3 col-md-6">
+                        <button id="btnSafe" class="btn btn-outline-success btn-sm w-100 btn-control">
+                            Inspect Safe Sample (Nominal)
+                        </button>
+                    </div>
 
-                        Relationship between wind speed and measured power draw.
+                    <div class="col-lg-3 col-md-6">
+                        <button id="btnBatteryAnomaly" class="btn btn-outline-warning btn-sm w-100 btn-control">
+                            Inspect Energy Anomaly (RQ3 Spike)
+                        </button>
+                    </div>
 
-                    </small>
-
+                    <div class="col-lg-3 col-md-6">
+                        <button id="btnRandom" class="btn btn-outline-secondary btn-sm w-100 btn-control">
+                            Inspect Random Record
+                        </button>
+                    </div>
                 </div>
 
-            </div>
-
-
-            <div class="col-lg-6">
-
-                                  <small class="text-muted">
-
-                        Permutation importance based on held-out F1-score.
-                        Importance does not establish causation.
-
-                    </small>
-
+                <div class="mt-2 text-end">
+                    <span class="badge bg-dark status-badge" id="simStatus">
+                        Ready - Waiting for interaction
+                    </span>
                 </div>
-
             </div>
-
         </div>
 
-
-
-            <div class="col-md-4">
-
-                <div class="telemetry-card">
-
-                    <small class="text-muted">
-                        Average Power Consumption
+        <!-- ================================================= -->
+        <!-- AI PREDICTIONS & DIAGNOSIS -->
+        <!-- ================================================= -->
+        <div class="row g-3 mb-3">
+            <!-- IMAGE -->
+            <div class="col-lg-4">
+                <div class="card-custom p-3 h-100">
+                    <h6 class="section-title">Visual Telemetry Stream</h6>
+                    <img id="droneImg" src="" class="img-drone mb-2" alt="Drone Camera Stream" style="display:none;">
+                    <div id="imagePlaceholder" class="image-placeholder mb-2">
+                        No optical camera frame recorded for this sample.
+                    </div>
+                    <small id="imgDesc" class="text-muted text-center d-block fw-semibold">
+                        No image loaded
                     </small>
+                </div>
+            </div>
 
-                    <h5 id="rq3AveragePower">
-                        --
+            <!-- RQ1 -->
+            <div class="col-lg-4">
+                <div class="card-custom p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="section-title m-0">RQ1 - Flight Stability Assessment</h6>
+                            <span class="badge bg-secondary" id="rq1RiskProbBadge">Prob: --</span>
+                        </div>
+                        <div id="rq1Box" class="alert-status bg-light text-dark mb-3">
+                            Waiting for telemetry...
+                        </div>
+
+                        <!-- 3 Core Safety Rule Parameter Checks -->
+                        <div class="p-2 border rounded bg-light mb-2">
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                <span class="small fw-semibold">Zone Proximity (< 50m limit):</span>
+                                        <span id="rq1ProxCheck" class="badge bg-secondary">--</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                <span class="small fw-semibold">Battery Reserve (< 20% limit):</span>
+                                        <span id="rq1BatCheck" class="badge bg-secondary">--</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span class="small fw-semibold">Wind Velocity (> 8 m/s limit):</span>
+                                <span id="rq1WindCheck" class="badge bg-secondary">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="rq1Detail" class="small text-muted border-top pt-2 mt-2">
+                        System nominal. All flight parameters operating within standard flight envelope.
+                    </div>
+                </div>
+            </div>
+
+            <!-- RQ2 -->
+            <div class="col-lg-4">
+                <div class="card-custom p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="section-title m-0">RQ2 - Detection Confidence</h6>
+                            <span class="badge bg-secondary" id="rq2RatingBadge">Quality: --</span>
+                        </div>
+
+                        <div class="text-center my-2">
+                            <h2 id="rq2Conf" class="fw-bold mb-0">--%</h2>
+                            <small class="text-muted d-block">Predicted Optical & Thermal Defect Confidence</small>
+                        </div>
+
+                        <div class="progress mb-3" style="height: 10px;">
+                            <div id="rq2Progress" class="progress-bar" role="progressbar" style="width: 0%"
+                                aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                            </div>
+                        </div>
+
+                        <!-- Influencing Atmospheric & Sensor Factors -->
+                        <div class="p-2 border rounded bg-light mb-2">
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                <span class="small fw-semibold">Weather Impact:</span>
+                                <span id="rq2WeatherFactor" class="badge bg-light text-dark border">--</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                <span class="small fw-semibold">Ambient Heat (Noise):</span>
+                                <span id="rq2HeatFactor" class="badge bg-light text-dark border">--</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                <span class="small fw-semibold">Thermal Intensity:</span>
+                                <span id="rq2ThermalFactor" class="badge bg-light text-dark border">--</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span class="small fw-semibold">Detected Objects:</span>
+                                <span id="rq2Objects" class="badge bg-light text-dark border">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="rq2Explanation" class="small text-muted border-top pt-2 mt-2">
+                        Awaiting telemetry factors...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================= -->
+        <!-- RQ3 BATTERY ANALYTICS & ENERGY ANOMALY DETECTION -->
+        <!-- ================================================= -->
+        <div class="card-custom p-3 mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                    <h5 class="section-title mb-1">
+                        RQ3 - Battery Consumption & Energy Anomaly Detection
                     </h5>
-
+                    <small class="text-muted">
+                        Analysis of energy discharge rates against 95th percentile operational envelope
+                    </small>
                 </div>
-
             </div>
 
+            <!-- RQ3 KPI CARDS -->
+            <div class="row g-3 mb-3">
+                <div class="col-lg-3 col-md-6 col-6">
+                    <div class="metric-box">
+                        <small class="text-muted d-block mb-1">Current Battery Level</small>
+                        <h4 id="rq3Battery" class="metric-value">--%</h4>
+                    </div>
+                </div>
 
+                <div class="col-lg-3 col-md-6 col-6">
+                    <div class="metric-box">
+                        <small class="text-muted d-block mb-1">Anomaly Probability</small>
+                        <h4 id="rq3Probability" class="metric-value">--%</h4>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-6">
+                    <div class="metric-box">
+                        <small class="text-muted d-block mb-1">Energy Consumption Status</small>
+                        <h4 id="rq3Status" class="metric-value">--</h4>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-6">
+                    <div class="metric-box">
+                        <small class="text-muted d-block mb-1">Power Draw (Current vs Fleet Avg)</small>
+                        <h4 id="rq3AveragePower" class="metric-value text-dark">--</h4>
+                        <small id="rq3PowerDiff" class="d-block text-muted" style="font-size: 0.75rem;">Fleet Avg:
+                            150.10 W</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WARNING BANNER -->
+            <div id="rq3Warning" class="alert alert-secondary py-2">
+                Waiting for RQ3 prediction...
+            </div>
+
+            <!-- BATTERY HISTORY AND WIND ANALYSIS (SIDE-BY-SIDE) -->
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <div class="card-custom border p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="section-title mb-0">Battery Consumption History</h6>
+                            <span id="rq3HistoryScope" class="badge bg-light text-secondary border">Telemetry
+                                Stream</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="batteryChart"></canvas>
+                        </div>
+                        <small id="rq3EvalNote" class="text-muted d-block mt-2">
+                            Statistical anomaly detection based on p95 discharge rate.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card-custom border p-3 h-100">
+                        <h6 class="section-title mb-2">Wind Speed vs Power Draw</h6>
+                        <div class="chart-container">
+                            <canvas id="environmentChart"></canvas>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            Correlation between atmospheric wind velocity and propulsion power draw.
+                        </small>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
 
-</div>
-
-
-<!-- ================================================= -->
-<!-- JAVASCRIPT -->
-<!-- ================================================= -->
-
-<script>
-
-
-// =====================================================
-// CONFIGURATION
-// =====================================================
-
-const API_BASE_URL =
-    window.location.protocol === "file:"
-        ? "http://127.0.0.1:8000"
-        : window.location.origin;
-
-
-let autoPlayTimer = null;
-
-let isAutoPlaying = false;
-
-let maxDatasetSize = 1;
-
-let currentRequest = 0;
-
-let batteryChart = null;
-
-let environmentChart = null;
-
-let importanceChart = null;
-
-
-// =====================================================
-// HELPERS
-// =====================================================
-
-function formatMetric(value, digits = 2) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return "N/A";
-    }
-
-    const number = Number(value);
-
-    return Number.isFinite(number)
-        ? number.toFixed(digits)
-        : "N/A";
-
-}
-
-
-function setText(id, value) {
-
-    const element = document.getElementById(id);
-
-    if (!element) return;
-
-    element.innerText =
-        value === null ||
-        value === undefined ||
-        value === ""
-            ? "N/A"
-            : value;
-
-}
-
-
-function showError(message) {
-
-    document.getElementById(
-        "errorMessage"
-    ).style.display = "block";
-
-    setText("errorText", message);
-
-}
-
-
-function hideError() {
-
-    document.getElementById(
-        "errorMessage"
-    ).style.display = "none";
-
-}
-
-
-async function fetchJSON(url) {
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-
-        let detail = response.statusText;
-
-        try {
-
-            const body = await response.json();
-
-            detail = body.detail || detail;
-
-        } catch (e) {}
-
-        throw new Error(
-            `${response.status}: ${detail}`
-        );
-
-    }
-
-    return response.json();
-
-}
-
-
-// =====================================================
-// API STATUS
-// =====================================================
-
-async function checkApiStatus() {
-
-    const badge = document.getElementById(
-        "apiStatus"
-    );
-
-    try {
-
-        const data = await fetchJSON(
-            `${API_BASE_URL}/api/v1/health`
-        );
-
-        badge.className =
-            "badge bg-success api-status";
-
-        badge.innerText =
-            "API Status: Connected";
-
-        console.log(
-            "API HEALTH:",
-            data
-        );
-
-    } catch (error) {
-
-        badge.className =
-            "badge bg-danger api-status";
-
-        badge.innerText =
-            "API Status: Disconnected";
-
-        showError(
-            "Cannot connect to API: " + error.message
-        );
-
-    }
-
-}
-
-
-// =====================================================
-// LOAD METRICS
-// =====================================================
-
-async function loadMetrics() {
-
-    try {
-
-        const data = await fetchJSON(
-            `${API_BASE_URL}/api/v1/metrics`
-        );
-
-        console.log(
-            "METRICS RESPONSE:",
-            data
-        );
-
-
-        // Dataset information
-
-        maxDatasetSize = Math.max(
-            1,
-            Number(data.dataset_size || 1)
-        );
-
-        setText(
-            "totalSamples",
-            `Dataset Size: ${maxDatasetSize.toLocaleString()} records`
-        );
-
-        document.getElementById(
-            "sampleSlider"
-        ).max = maxDatasetSize - 1;
-
-
-        // =============================================
-        // RQ1
-        // =============================================
-
-        const r1 = data.rq1 || {};
-
-        setText(
-            "rq1Acc",
-            r1.accuracy == null
-                ? "--"
-                : (
-                    Number(r1.accuracy) * 100
-                ).toFixed(2) + "%"
-        );
-
-        setText(
-            "rq1F1",
-            r1.f1_score == null
-                ? "--"
-                : formatMetric(r1.f1_score, 4)
-        );
-
-        setText(
-            "rq1AUC",
-            formatMetric(
-                r1.auc_roc ??
-                r1.roc_auc,
-                4
-            )
-        );
-
-
-        // =============================================
-        // RQ2
-        // =============================================
-
-        const r2 = data.rq2 || {};
-
-        setText(
-            "rq2Mae",
-            formatMetric(r2.mae, 4)
-        );
-
-        setText(
-            "rq2Rmse",
-            formatMetric(r2.rmse, 4)
-        );
-
-
-        // =============================================
-        // RQ3
-        // =============================================
-
-        const r3 = data.rq3 || {};
-
-        updateRQ3Metrics(r3);
-
-
-        // =============================================
-        // RQ3 SUMMARY
-        // =============================================
-
-        const summary = data.rq3_summary || {};
-
-        setText(
-            "rq3AverageRate",
-            summary.mean_consumption_pct_per_min == null
-                ? "N/A"
-                : formatMetric(
-                    summary.mean_consumption_pct_per_min,
-                    4
-                ) + " %/min"
-        );
-
-        setText(
-            "rq3AveragePower",
-            summary.mean_power_consumption_watts == null
-                ? "N/A"
-                : formatMetric(
-                    summary.mean_power_consumption_watts,
-                    2
-                ) + " W"
-        );
-
-        setText(
-            "rq3AbnormalRate",
-            summary.abnormal_rate == null
-                ? "N/A"
-                : (
-                    Number(summary.abnormal_rate) * 100
-                ).toFixed(2) + "%"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Metrics loading failed:",
-            error
-        );
-
-        showError(
-            "Metrics error: " + error.message
-        );
-
-    }
-
-}
-
-
-// =====================================================
-// RQ3 MODEL METRICS
-// =====================================================
-
-function updateRQ3Metrics(metrics) {
-
-    if (!metrics || metrics.available === false) {
-
-        setText(
-            "rq3SourceBadge",
-            "RQ3 unavailable"
-        );
-
-        setText(
-            "rq3EvalNote",
-            metrics?.error || "RQ3 model unavailable."
-        );
-
-        drawImportanceChart({});
-
-        return;
-
-    }
-
-
-    function percent(value) {
-
-        if (value == null) {
-            return "N/A";
+    <!-- ===================================================== -->
+    <!-- JAVASCRIPT -->
+    <!-- ===================================================== -->
+    <script>
+        const API_BASE_URL =
+            window.location.protocol === "file:"
+                ? "http://127.0.0.1:8000"
+                : window.location.origin;
+
+        let maxDatasetSize = 1;
+        let currentRequest = 0;
+        let batteryChart = null;
+        let environmentChart = null;
+
+        let currentDrone = "ALL";
+        let droneList = [];
+        let droneIndicesMap = {};
+        let currentDroneIndices = null;
+        let currentStep = 0;
+        let fleetMeanPower = 150.10;
+
+        // =====================================================
+        // HELPERS
+        // =====================================================
+        function formatMetric(value, digits = 2) {
+            if (value === null || value === undefined || value === "") {
+                return "N/A";
+            }
+            const number = Number(value);
+            return Number.isFinite(number) ? number.toFixed(digits) : "N/A";
         }
 
-        return (
-            Number(value) * 100
-        ).toFixed(2) + "%";
+        function setText(id, value) {
+            const element = document.getElementById(id);
+            if (!element) return;
+            element.innerText =
+                value === null || value === undefined || value === "" ? "N/A" : value;
+        }
 
-    }
+        function showError(message) {
+            document.getElementById("errorMessage").style.display = "block";
+            setText("errorText", message);
+        }
 
+        function hideError() {
+            document.getElementById("errorMessage").style.display = "none";
+        }
 
-    setText(
-        "rq3Accuracy",
-        percent(metrics.accuracy)
-    );
+        async function fetchJSON(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                let detail = response.statusText;
+                try {
+                    const body = await response.json();
+                    detail = body.detail || detail;
+                } catch (e) { }
+                throw new Error(`${response.status}: ${detail}`);
+            }
+            return response.json();
+        }
 
-    setText(
-        "rq3Precision",
-        percent(metrics.precision)
-    );
+        // =====================================================
+        // DYNAMIC COLOR THRESHOLDS
+        // =====================================================
+        function applyDynamicThresholdColors(telemetry, rq1, rq2, rq3) {
+            const t = telemetry || {};
 
-    setText(
-        "rq3Recall",
-        percent(metrics.recall)
-    );
-
-    setText(
-        "rq3F1",
-        percent(metrics.f1_score)
-    );
-
-
-    setText(
-        "rq3SourceBadge",
-        "Target source: " +
-        (metrics.target_source || "Unknown")
-    );
-
-
-    let note = "";
-
-    if (
-        String(metrics.target_source || "")
-            .startsWith("heuristic")
-    ) {
-
-        note =
-            "Heuristic-generated abnormal-energy labels. " +
-            "These metrics do not prove detection of actual battery faults.";
-
-    } else {
-
-        note =
-            "Evaluation uses dataset-provided abnormal-energy labels.";
-
-    }
-
-
-    if (metrics.sequence_available === false) {
-
-        note +=
-            " No sufficiently repeated mission-level battery sequence " +
-            "was available; the model uses measured power consumption.";
-
-    }
-
-
-    setText(
-        "rq3EvalNote",
-        note
-    );
-
-}
-
-
-// =====================================================
-// BATTERY CHART
-// =====================================================
-
-function drawBatteryChart(history) {
-
-    const ctx = document.getElementById(
-        "batteryChart"
-    );
-
-    if (batteryChart) {
-        batteryChart.destroy();
-    }
-
-
-    const labels = history.map(
-        (row, i) => {
-
-            if (row.timestamp) {
-                return String(row.timestamp).slice(0, 19);
+            // 1. Battery Level (< 20% Danger/Red, 20-49% Warning/Yellow, >= 50% Success/Green)
+            const batEl = document.getElementById("batteryVal");
+            const rq3BatEl = document.getElementById("rq3Battery");
+            if (t.battery_level_pct != null) {
+                const bat = Number(t.battery_level_pct);
+                let batClass = "telemetry-value ";
+                let rq3BatClass = "metric-value ";
+                if (bat < 20) {
+                    batClass += "text-danger fw-bold";
+                    rq3BatClass += "text-danger fw-bold";
+                } else if (bat < 50) {
+                    batClass += "text-warning fw-bold";
+                    rq3BatClass += "text-warning fw-bold";
+                } else {
+                    batClass += "text-success fw-bold";
+                    rq3BatClass += "text-success fw-bold";
+                }
+                if (batEl) batEl.className = batClass;
+                if (rq3BatEl) rq3BatEl.className = rq3BatClass;
             }
 
-            return `Sample ${i + 1}`;
-
-        }
-    );
-
-
-    const batteryData = history.map(
-        row => row.battery_level_pct
-    );
-
-    const rateData = history.map(
-        row => row.consumption_pct_per_min
-    );
-
-
-    batteryChart = new Chart(ctx, {
-
-        type: "line",
-
-        data: {
-
-            labels: labels,
-
-            datasets: [
-
-                {
-
-                    label: "Battery Level (%)",
-
-                    data: batteryData,
-
-                    borderColor: "#198754",
-
-                    backgroundColor:
-                        "rgba(25,135,84,0.10)",
-
-                    tension: 0.3,
-
-                    yAxisID: "y",
-
-                    spanGaps: true
-
-                },
-
-                {
-
-                    label: "Consumption (% points/min)",
-
-                    data: rateData,
-
-                    borderColor: "#0d6efd",
-
-                    backgroundColor:
-                        "rgba(13,110,253,0.10)",
-
-                    tension: 0.3,
-
-                    yAxisID: "y1",
-
-                    spanGaps: true
-
+            // 2. Wind Speed (< 5.0 Success/Green, 5.0 - 8.0 Warning/Yellow, > 8.0 Danger/Red)
+            const windEl = document.getElementById("windVal");
+            if (t.wind_speed_mps != null && windEl) {
+                const wind = Number(t.wind_speed_mps);
+                if (wind > 8.0) {
+                    windEl.className = "telemetry-value text-danger fw-bold";
+                } else if (wind >= 5.0) {
+                    windEl.className = "telemetry-value text-warning fw-bold";
+                } else {
+                    windEl.className = "telemetry-value text-success fw-bold";
                 }
-
-            ]
-
-        },
-
-        options: {
-
-            responsive: true,
-
-            maintainAspectRatio: false,
-
-            interaction: {
-
-                intersect: false,
-
-                mode: "index"
-
-            },
-
-            scales: {
-
-                y: {
-
-                    type: "linear",
-
-                    position: "left",
-
-                    title: {
-
-                        display: true,
-
-                        text: "Battery Level (%)"
-
-                    }
-
-                },
-
-                y1: {
-
-                    type: "linear",
-
-                    position: "right",
-
-                    title: {
-
-                        display: true,
-
-                        text: "Consumption Rate"
-
-                    },
-
-                    grid: {
-
-                        drawOnChartArea: false
-
-                    }
-
-                }
-
             }
 
-        }
-
-    });
-
-}
-
-
-// =====================================================
-// ENVIRONMENTAL ANALYSIS
-// =====================================================
-
-function drawEnvironmentChart(history) {
-
-    const ctx = document.getElementById(
-        "environmentChart"
-    );
-
-    if (environmentChart) {
-        environmentChart.destroy();
-    }
-
-
-    const points = history
-
-        .filter(row =>
-
-            row.wind_speed_mps != null &&
-
-            row.power_consumption_watts != null
-
-        )
-
-        .map(row => ({
-
-            x: Number(row.wind_speed_mps),
-
-            y: Number(row.power_consumption_watts)
-
-        }))
-
-        .filter(point =>
-
-            Number.isFinite(point.x) &&
-
-            Number.isFinite(point.y)
-
-        );
-
-
-    environmentChart = new Chart(ctx, {
-
-        type: "scatter",
-
-        data: {
-
-            datasets: [
-
-                {
-
-                    label: "Wind Speed vs Power",
-
-                    data: points,
-
-                    backgroundColor: "#0d6efd",
-
-                    pointRadius: 5
-
+            // 3. Ambient Temp (15-35 C Optimal/Green, 5-14 C or 36-42 C Caution/Yellow, < 5 or > 42 Danger/Red)
+            const tempEl = document.getElementById("tempVal");
+            if (t.ambient_temp_C != null && tempEl) {
+                const temp = Number(t.ambient_temp_C);
+                if (temp < 5 || temp > 42) {
+                    tempEl.className = "telemetry-value text-danger fw-bold";
+                } else if ((temp >= 5 && temp < 15) || (temp > 35 && temp <= 42)) {
+                    tempEl.className = "telemetry-value text-warning fw-bold";
+                } else {
+                    tempEl.className = "telemetry-value text-success fw-bold";
                 }
-
-            ]
-
-        },
-
-        options: {
-
-            responsive: true,
-
-            maintainAspectRatio: false,
-
-            plugins: {
-
-                tooltip: {
-
-                    callbacks: {
-
-                        label: function(context) {
-
-                            return (
-
-                                "Wind: " +
-
-                                context.parsed.x.toFixed(2) +
-
-                                " m/s | Power: " +
-
-                                context.parsed.y.toFixed(2) +
-
-                                " W"
-
-                            );
-
-                        }
-
-                    }
-
-                }
-
-            },
-
-            scales: {
-
-                x: {
-
-                    title: {
-
-                        display: true,
-
-                        text: "Wind Speed (m/s)"
-
-                    }
-
-                },
-
-                y: {
-
-                    title: {
-
-                        display: true,
-
-                        text: "Power Consumption (W)"
-
-                    }
-
-                }
-
             }
 
-        }
-
-    });
-
-}
-
-
-// =====================================================
-// FEATURE IMPORTANCE
-// =====================================================
-
-function drawImportanceChart(featureImportance) {
-
-    const ctx = document.getElementById(
-        "importanceChart"
-    );
-
-    if (importanceChart) {
-        importanceChart.destroy();
-    }
-
-
-    const entries = Object.entries(
-        featureImportance || {}
-    ).sort(
-        (a, b) => b[1] - a[1]
-    );
-
-
-    importanceChart = new Chart(ctx, {
-
-        type: "bar",
-
-        data: {
-
-            labels: entries.map(
-                item => item[0]
-            ),
-
-            datasets: [
-
-                {
-
-                    label: "Permutation Importance",
-
-                    data: entries.map(
-                        item => item[1]
-                    ),
-
-                    backgroundColor: "#0d6efd"
-
+            // 4. Zone Proximity (< 50m Critical Danger/Red, 50-149m Warning/Yellow, >= 150m Success/Green)
+            const proxEl = document.getElementById("proximityVal");
+            if (t.proximity_to_restricted_zone_m != null && proxEl) {
+                const prox = Number(t.proximity_to_restricted_zone_m);
+                if (prox < 50) {
+                    proxEl.className = "telemetry-value text-danger fw-bold";
+                } else if (prox < 150) {
+                    proxEl.className = "telemetry-value text-warning fw-bold";
+                } else {
+                    proxEl.className = "telemetry-value text-success fw-bold";
                 }
-
-            ]
-
-        },
-
-        options: {
-
-            indexAxis: "y",
-
-            responsive: true,
-
-            maintainAspectRatio: false,
-
-            plugins: {
-
-                legend: {
-                    display: false
-                }
-
-            },
-
-            scales: {
-
-                x: {
-
-                    beginAtZero: true,
-
-                    title: {
-
-                        display: true,
-
-                        text: "Change in F1-score"
-
-                    }
-
-                }
-
             }
 
+            // 5. Flight Altitude
+            const altEl = document.getElementById("altitudeVal");
+            if (t.altitude_m != null && altEl) {
+                altEl.className = "telemetry-value text-dark fw-bold";
+            }
+
+            // 6. RQ2 Confidence (>= 75% Success/Green, 60-74% Warning/Yellow, < 60% Danger/Red)
+            const rq2ConfEl = document.getElementById("rq2Conf");
+            const rq2ProgEl = document.getElementById("rq2Progress");
+            const rawConf = rq2?.predicted_confidence ?? rq2?.prediction;
+            if (rawConf != null) {
+                const confPct = Number(rawConf) * 100;
+                if (confPct >= 75) {
+                    if (rq2ConfEl) rq2ConfEl.className = "fw-bold text-success mb-0";
+                    if (rq2ProgEl) rq2ProgEl.className = "progress-bar bg-success";
+                } else if (confPct >= 60) {
+                    if (rq2ConfEl) rq2ConfEl.className = "fw-bold text-warning mb-0";
+                    if (rq2ProgEl) rq2ProgEl.className = "progress-bar bg-warning";
+                } else {
+                    if (rq2ConfEl) rq2ConfEl.className = "fw-bold text-danger mb-0";
+                    if (rq2ProgEl) rq2ProgEl.className = "progress-bar bg-danger";
+                }
+            }
+
+            // 5. RQ3 Probability (< 30% Green, 30-59% Yellow, >= 60% Red)
+            const r3ProbEl = document.getElementById("rq3Probability");
+            if (rq3?.abnormal_probability != null && r3ProbEl) {
+                const prob = Number(rq3.abnormal_probability);
+                if (prob >= 0.6) {
+                    r3ProbEl.className = "metric-value text-danger fw-bold";
+                } else if (prob >= 0.3) {
+                    r3ProbEl.className = "metric-value text-warning fw-bold";
+                } else {
+                    r3ProbEl.className = "metric-value text-success fw-bold";
+                }
+            }
         }
 
-    });
-
-}
-
-
-// =====================================================
-// FETCH TELEMETRY
-// =====================================================
-
-async function getTelemetry(index) {
-
-    return fetchJSON(
-        `${API_BASE_URL}/api/v1/telemetry/${index}`
-    );
-
-}
-
-
-// =====================================================
-// UPDATE RQ3 PREDICTION
-// =====================================================
-
-function updateRQ3Prediction(data) {
-
-    const r3 = data.rq3_prediction || {};
-
-    const telemetry = data.telemetry || {};
-
-
-    if (r3.available === false) {
-
-        setText("rq3Battery", "--");
-
-        setText("rq3Drop", "N/A");
-
-        setText("rq3Rate", "N/A");
-
-        setText("rq3Power", "N/A");
-
-        setText("rq3Probability", "N/A");
-
-        setText("rq3Status", "Unavailable");
-
-        document.getElementById(
-            "rq3Warning"
-        ).className = "alert alert-warning";
-
-        setText(
-            "rq3Warning",
-            r3.error || "RQ3 prediction unavailable."
-        );
-
-        return;
-
-    }
-
-
-    // Battery level
-
-    const battery =
-        r3.battery_level_pct ??
-        telemetry.battery_level_pct;
-
-
-    setText(
-        "rq3Battery",
-        battery == null
-            ? "N/A"
-            : formatMetric(battery, 1) + "%"
-    );
-
-
-    // Battery drop
-
-    setText(
-        "rq3Drop",
-        r3.battery_drop_pct == null
-            ? "N/A"
-            : formatMetric(r3.battery_drop_pct, 2)
-    );
-
-
-    // Consumption rate
-
-    setText(
-        "rq3Rate",
-        r3.consumption_pct_per_min == null
-            ? "N/A"
-            : formatMetric(
-                r3.consumption_pct_per_min,
-                4
-            )
-    );
-
-
-    // Power consumption
-
-    const power =
-        r3.power_consumption_watts ??
-        telemetry.power_consumption_watts;
-
-
-    setText(
-        "rq3Power",
-        power == null
-            ? "N/A"
-            : formatMetric(power, 2) + " W"
-    );
-
-
-    // Abnormal probability
-
-    setText(
-        "rq3Probability",
-        r3.abnormal_probability == null
-            ? "N/A"
-            : (
-                Number(r3.abnormal_probability) * 100
-            ).toFixed(1) + "%"
-    );
-
-
-    // Status
-
-    const status = document.getElementById(
-        "rq3Status"
-    );
-
-    const warning = document.getElementById(
-        "rq3Warning"
-    );
-
-
-    if (r3.unstable_battery === 1) {
-
-        status.innerText = "ABNORMAL";
-
-        status.className =
-            "metric-value text-danger";
-
-        warning.className =
-            "alert alert-danger";
-
-        warning.innerText =
-            "⚠️ Abnormal energy usage detected. " +
-            "Review battery and power-consumption telemetry.";
-
-    } else if (r3.unstable_battery === 0) {
-
-        status.innerText = "NORMAL";
-
-        status.className =
-            "metric-value text-success";
-
-        warning.className =
-            "alert alert-success";
-
-        warning.innerText =
-            "✅ No abnormal energy usage flagged by the model.";
-
-    } else {
-
-        status.innerText = "Unavailable";
-
-        status.className =
-            "metric-value text-secondary";
-
-        warning.className =
-            "alert alert-warning";
-
-        warning.innerText =
-            "RQ3 model did not return a valid class.";
-
-    }
-
-
-    // Explain heuristic labels.
-
-    if (
-        String(r3.target_source || "")
-            .startsWith("heuristic")
-    ) {
-
-        warning.innerText +=
-            " Labels are heuristic-generated and do not confirm battery failure.";
-
-    }
-
-
-    setText(
-        "rq3SourceBadge",
-        "Target source: " + (
-            r3.target_source || "Unknown"
-        )
-    );
-
-}
-
-
-// =====================================================
-// UPDATE DASHBOARD
-// =====================================================
-
-async function updateDashboard(index) {
-
-    index = Math.max(
-        0,
-        Math.min(
-            Number(index) || 0,
-            maxDatasetSize - 1
-        )
-    );
-
-    const requestId = ++currentRequest;
-
-
-    document.getElementById(
-        "sampleSlider"
-    ).value = index;
-
-    setText(
-        "sliderVal",
-        `Sample Index: ${index}`
-    );
-
-
-    try {
-
-        const data = await getTelemetry(index);
-
-        if (requestId !== currentRequest) {
-            return;
+        // =====================================================
+        // API STATUS
+        // =====================================================
+        async function checkApiStatus() {
+            const badge = document.getElementById("apiStatus");
+            try {
+                await fetchJSON(`${API_BASE_URL}/api/v1/health`);
+                badge.className = "badge bg-success status-badge";
+                badge.innerText = "API Status: Connected";
+            } catch (error) {
+                badge.className = "badge bg-danger status-badge";
+                badge.innerText = "API Status: Disconnected";
+                showError("Cannot connect to API: " + error.message);
+            }
         }
 
-        console.log(
-            "TELEMETRY RESPONSE:",
-            data
-        );
+        // =====================================================
+        // LOAD METRICS
+        // =====================================================
+        async function loadMetrics() {
+            try {
+                const data = await fetchJSON(`${API_BASE_URL}/api/v1/metrics`);
 
+                maxDatasetSize = Math.max(1, Number(data.dataset_size || 1));
+                setText("totalSamples", `Dataset Size: ${maxDatasetSize.toLocaleString()} records`);
 
-        const t = data.telemetry || {};
+                const sampleInput = document.getElementById("sampleInput");
+                const sampleSlider = document.getElementById("sampleSlider");
+                sampleInput.max = maxDatasetSize - 1;
+                sampleSlider.max = maxDatasetSize - 1;
 
-        hideError();
+                // RQ1
+                const r1 = data.rq1 || {};
+                setText("rq1Acc", r1.accuracy == null ? "--" : (Number(r1.accuracy) * 100).toFixed(2) + "%");
+                setText("rq1F1", r1.f1_score == null ? "--" : formatMetric(r1.f1_score, 4));
+                setText("rq1AUC", formatMetric(r1.auc_roc ?? r1.roc_auc, 4));
 
+                // RQ2
+                const r2 = data.rq2 || {};
+                setText("rq2Mae", formatMetric(r2.mae, 4));
+                setText("rq2Rmse", formatMetric(r2.rmse, 4));
 
-        // =============================================
-        // METADATA
-        // =============================================
+                // RQ3
+                const r3 = data.rq3 || {};
+                updateRQ3Metrics(r3);
 
-        setText(
-            "timeMissionVal",
-            `${data.timestamp || "N/A"} (${data.mission_id || "N/A"})`
-        );
+                // RQ3 Summary
+                const summary = data.rq3_summary || {};
+                if (summary.mean_power_consumption_watts != null) {
+                    fleetMeanPower = Number(summary.mean_power_consumption_watts);
+                }
+                const powerDiffEl = document.getElementById("rq3PowerDiff");
+                if (powerDiffEl) {
+                    powerDiffEl.innerText = `Fleet Avg: ${formatMetric(fleetMeanPower, 1)} W`;
+                }
 
-        setText(
-            "droneIdVal",
-            data.drone_id || "N/A"
-        );
-
-
-        // =============================================
-        // TELEMETRY
-        // =============================================
-
-        setText(
-            "batteryVal",
-            t.battery_level_pct == null
-                ? "N/A"
-                : formatMetric(
-                    t.battery_level_pct,
-                    1
-                ) + "%"
-        );
-
-
-        setText(
-            "windVal",
-            t.wind_speed_mps == null
-                ? "N/A"
-                : formatMetric(
-                    t.wind_speed_mps,
-                    1
-                ) + " m/s"
-        );
-
-
-        setText(
-            "tempVal",
-            t.ambient_temp_C == null
-                ? "N/A"
-                : formatMetric(
-                    t.ambient_temp_C,
-                    1
-                ) + " °C"
-        );
-
-
-        setText(
-            "weatherVal",
-            t.weather_condition || "Unknown"
-        );
-
-
-        // =============================================
-        // IMAGE
-        // =============================================
-
-        const image = document.getElementById(
-            "droneImg"
-        );
-
-        const placeholder = document.getElementById(
-            "imagePlaceholder"
-        );
-
-        if (data.image?.url) {
-
-            image.src = data.image.url;
-
-            image.style.display = "block";
-
-            placeholder.style.display = "none";
-
-        } else {
-
-            image.style.display = "none";
-
-            placeholder.style.display = "flex";
-
+            } catch (error) {
+                console.error("Metrics loading failed:", error);
+                showError("Metrics error: " + error.message);
+            }
         }
 
-        setText(
-            "imgDesc",
-            data.image?.desc || "No image description"
-        );
+        // =====================================================
+        // RQ3 MODEL METRICS
+        // =====================================================
+        function updateRQ3Metrics(metrics) {
+            if (!metrics || metrics.available === false) {
+                setText("rq3SourceBadge", "RQ3 unavailable");
+                setText("rq3EvalNote", metrics?.error || "RQ3 model unavailable.");
+                return;
+            }
 
+            function percent(value) {
+                return value == null ? "N/A" : (Number(value) * 100).toFixed(2) + "%";
+            }
 
-        // =============================================
-        // RQ1
-        // =============================================
+            setText("rq3Accuracy", percent(metrics.accuracy));
+            setText("rq3Precision", percent(metrics.precision));
+            setText("rq3Recall", percent(metrics.recall));
+            setText("rq3F1", percent(metrics.f1_score));
+            setText("rq3SourceBadge", "Target source: " + (metrics.target_source || "Unknown"));
 
-        const r1 = data.rq1_prediction || {};
-
-        const rq1Box = document.getElementById(
-            "rq1Box"
-        );
-
-
-        if (r1.available === false) {
-
-            rq1Box.className =
-                "alert-status bg-warning text-dark";
-
-            rq1Box.innerText =
-                "RQ1 unavailable";
-
-            setText(
-                "rq1Detail",
-                r1.error || "Check RQ1 service."
-            );
-
-        } else {
-
-            const unstable =
-                r1.is_unstable ??
-                r1.unstable_flight;
-
-            const risk = Number(
-                r1.risk_probability ??
-                r1.abnormal_probability ??
-                0
-            );
-
-            if (unstable === 1) {
-
-                rq1Box.className =
-                    "alert-status bg-danger text-white";
-
-                rq1Box.innerText =
-                    `🚨 FLIGHT RISK DETECTED (${(risk * 100).toFixed(1)}%)`;
-
-            } else if (unstable === 0) {
-
-                rq1Box.className =
-                    "alert-status bg-success text-white";
-
-                rq1Box.innerText =
-                    `✅ FLIGHT STABLE (${((1 - risk) * 100).toFixed(1)}%)`;
-
+            let note = "";
+            if (String(metrics.target_source || "").startsWith("heuristic")) {
+                note = "Statistical anomaly detection based on p95 discharge rate.";
             } else {
+                note = "Evaluation uses dataset-provided operational labels.";
+            }
+            setText("rq3EvalNote", note);
+        }
 
-                rq1Box.className =
-                    "alert-status bg-warning text-dark";
-
-                rq1Box.innerText =
-                    "RQ1 prediction field unavailable";
-
+        // =====================================================
+        // CHARTS
+        // =====================================================
+        function drawBatteryChart(history) {
+            const ctx = document.getElementById("batteryChart");
+            if (batteryChart) {
+                batteryChart.destroy();
             }
 
-            setText(
-                "rq1Detail",
-                `Battery: ${formatMetric(t.battery_level_pct, 1)}% | Wind: ${formatMetric(t.wind_speed_mps, 1)} m/s`
-            );
+            const scopeBadge = document.getElementById("rq3HistoryScope");
+            if (scopeBadge) {
+                if (!history || history.length === 0) {
+                    scopeBadge.textContent = "No Data";
+                } else {
+                    const uniqueMissions = new Set(history.map(r => r.mission_id).filter(Boolean));
+                    if (uniqueMissions.size === 1) {
+                        scopeBadge.textContent = `Mission ${[...uniqueMissions][0]} (${history.length} pts)`;
+                    } else {
+                        scopeBadge.textContent = `Drone Rolling Window (${history.length} pts)`;
+                    }
+                }
+            }
 
+            const labels = history.map((row, i) => {
+                if (row.timestamp) {
+                    return String(row.timestamp).slice(0, 19);
+                }
+                return `Sample ${i + 1}`;
+            });
+
+            const batteryData = history.map(row => row.battery_level_pct);
+            const rateData = history.map(row => row.consumption_pct_per_min);
+
+            batteryChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Battery Level (%)",
+                            data: batteryData,
+                            borderColor: "#198754",
+                            backgroundColor: "rgba(25,135,84,0.10)",
+                            tension: 0.2,
+                            yAxisID: "y",
+                            spanGaps: true
+                        },
+                        {
+                            label: "Consumption (% / min)",
+                            data: rateData,
+                            borderColor: "#0d6efd",
+                            backgroundColor: "rgba(13,110,253,0.10)",
+                            tension: 0.2,
+                            yAxisID: "y1",
+                            spanGaps: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+                    scales: {
+                        y: {
+                            type: "linear",
+                            position: "left",
+                            title: {
+                                display: true,
+                                text: "Battery Level (%)"
+                            }
+                        },
+                        y1: {
+                            type: "linear",
+                            position: "right",
+                            min: 0,
+                            title: {
+                                display: true,
+                                text: "Discharge Rate (%/min)"
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
         }
 
+        function drawEnvironmentChart(history) {
+            const ctx = document.getElementById("environmentChart");
+            if (environmentChart) {
+                environmentChart.destroy();
+            }
 
-        // =============================================
-        // RQ2
-        // =============================================
+            const points = history
+                .filter(row => row.wind_speed_mps != null && row.power_consumption_watts != null)
+                .map(row => ({
+                    x: Number(row.wind_speed_mps),
+                    y: Number(row.power_consumption_watts)
+                }))
+                .filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
 
-        const r2 = data.rq2_prediction || {};
-
-        const rawConfidence =
-            r2.predicted_confidence ??
-            r2.prediction ??
-            null;
-
-
-        if (r2.available === false) {
-
-            setText(
-                "rq2Conf",
-                "N/A"
-            );
-
-            setText(
-                "rq2Objects",
-                r2.error || "RQ2 unavailable"
-            );
-
-            document.getElementById(
-                "rq2Progress"
-            ).style.width = "0%";
-
-        } else if (rawConfidence != null) {
-
-            const confidence = Math.max(
-                0,
-                Math.min(
-                    100,
-                    Number(rawConfidence) * 100
-                )
-            );
-
-            setText(
-                "rq2Conf",
-                confidence.toFixed(1) + "%"
-            );
-
-            document.getElementById(
-                "rq2Progress"
-            ).style.width = confidence + "%";
-
-            document.getElementById(
-                "rq2Progress"
-            ).setAttribute(
-                "aria-valuenow",
-                confidence
-            );
-
-            setText(
-                "rq2Objects",
-                "Detected objects: " +
-                (t.detected_object_count ?? "N/A")
-            );
-
-        } else {
-
-            setText("rq2Conf", "N/A");
-
-            setText(
-                "rq2Objects",
-                "Confidence unavailable"
-            );
-
+            environmentChart = new Chart(ctx, {
+                type: "scatter",
+                data: {
+                    datasets: [
+                        {
+                            label: "Wind Speed vs Power Draw",
+                            data: points,
+                            backgroundColor: "#0d6efd",
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `Wind: ${context.parsed.x.toFixed(2)} m/s | Power: ${context.parsed.y.toFixed(2)} W`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: "Wind Speed (m/s)"
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: "Power Consumption (W)"
+                            }
+                        }
+                    }
+                }
+            });
         }
 
-
-        // =============================================
-        // RQ3 PREDICTION
-        // =============================================
-
-        updateRQ3Prediction(data);
-
-
-        // =============================================
-        // RQ3 HISTORY
-        // =============================================
-
-        const history = Array.isArray(
-            data.rq3_history
-        )
-            ? data.rq3_history
-            : [];
-
-
-        drawBatteryChart(history);
-
-        drawEnvironmentChart(history);
-
-
-    } catch (error) {
-
-        console.error(
-            "Dashboard update failed:",
-            error
-        );
-
-        showError(
-            "Telemetry error: " + error.message
-        );
-
-    }
-
-}
-
-
-// =====================================================
-// SLIDER
-// =====================================================
-
-document.getElementById(
-    "sampleSlider"
-).addEventListener(
-    "input",
-    function() {
-
-        if (isAutoPlaying) {
-            toggleAutoPlay();
+        // =====================================================
+        // TELEMETRY & DASHBOARD UPDATE
+        // =====================================================
+        async function getTelemetry(index) {
+            return fetchJSON(`${API_BASE_URL}/api/v1/telemetry/${index}`);
         }
 
-        updateDashboard(
-            this.value
-        );
+        function updateSliderLabel(step, actualIndex) {
+            const label = document.getElementById("sliderVal");
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                label.innerText = `Step ${step + 1} / ${currentDroneIndices.length.toLocaleString()} (Dataset Row #${actualIndex.toLocaleString()})`;
+            } else {
+                label.innerText = `Dataset Row #${actualIndex.toLocaleString()} / ${maxDatasetSize.toLocaleString()}`;
+            }
+        }
 
-    }
-);
+        async function updateDashboard(index) {
+            index = Math.max(0, Math.min(Number(index) || 0, maxDatasetSize - 1));
+            const requestId = ++currentRequest;
 
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                const step = currentDroneIndices.indexOf(index);
+                if (step !== -1) {
+                    currentStep = step;
+                    document.getElementById("sampleSlider").value = currentStep + 1;
+                    document.getElementById("sampleInput").value = currentStep + 1;
+                }
+                updateSliderLabel(currentStep, index);
+            } else {
+                document.getElementById("sampleSlider").value = index;
+                document.getElementById("sampleInput").value = index;
+                updateSliderLabel(0, index);
+            }
 
-// =====================================================
-// AUTO PLAY
-// =====================================================
+            try {
+                const data = await getTelemetry(index);
+                if (requestId !== currentRequest) return;
 
-document.getElementById(
-    "btnAutoPlay"
-).addEventListener(
-    "click",
-    toggleAutoPlay
-);
+                hideError();
+                const t = data.telemetry || {};
+                const r1 = data.rq1_prediction || {};
+                const r2 = data.rq2_prediction || {};
+                const r3 = data.rq3_prediction || {};
 
+                // 1. Telemetry Metadata
+                setText("timeMissionVal", `${data.timestamp || "N/A"} (${data.mission_id || "N/A"})`);
+                setText("droneIdVal", data.drone_id || "N/A");
 
-function toggleAutoPlay() {
+                // 2. Telemetry Values
+                setText("batteryVal", t.battery_level_pct == null ? "N/A" : formatMetric(t.battery_level_pct, 1) + "%");
+                setText("windVal", t.wind_speed_mps == null ? "N/A" : formatMetric(t.wind_speed_mps, 1) + " m/s");
+                setText("tempVal", t.ambient_temp_C == null ? "N/A" : formatMetric(t.ambient_temp_C, 1) + " °C");
+                setText("proximityVal", t.proximity_to_restricted_zone_m == null ? "N/A" : formatMetric(t.proximity_to_restricted_zone_m, 0) + " m");
+                setText("altitudeVal", t.altitude_m == null ? "N/A" : formatMetric(t.altitude_m, 0) + " m");
+                setText("weatherVal", t.weather_condition || "Unknown");
 
-    const button = document.getElementById(
-        "btnAutoPlay"
-    );
+                // 3. Dynamic Threshold Color Application
+                applyDynamicThresholdColors(t, r1, r2, r3);
 
-    const status = document.getElementById(
-        "simStatus"
-    );
+                // 4. Optical Image
+                const image = document.getElementById("droneImg");
+                const placeholder = document.getElementById("imagePlaceholder");
+                if (data.image?.url) {
+                    image.src = data.image.url;
+                    image.style.display = "block";
+                    placeholder.style.display = "none";
+                } else {
+                    image.style.display = "none";
+                    placeholder.style.display = "flex";
+                }
+                setText("imgDesc", data.image?.desc || "No image description");
 
+                // 5. RQ1 Prediction Breakdown
+                const rq1Box = document.getElementById("rq1Box");
+                const rq1ProbBadge = document.getElementById("rq1RiskProbBadge");
+                const rq1ProxCheck = document.getElementById("rq1ProxCheck");
+                const rq1BatCheck = document.getElementById("rq1BatCheck");
+                const rq1WindCheck = document.getElementById("rq1WindCheck");
+                const rq1Detail = document.getElementById("rq1Detail");
 
-    if (isAutoPlaying) {
+                if (r1.available === false) {
+                    rq1Box.className = "alert-status bg-warning text-dark mb-3";
+                    rq1Box.innerText = "RQ1 Model Unavailable";
+                    if (rq1ProbBadge) rq1ProbBadge.innerText = "Prob: N/A";
+                    if (rq1Detail) rq1Detail.innerText = r1.error || "Check RQ1 service.";
+                } else {
+                    const unstable = r1.is_unstable ?? r1.unstable_flight;
+                    const risk = Number(r1.risk_probability ?? r1.abnormal_probability ?? 0);
+                    const bat = Number(t.battery_level_pct || 100);
+                    const wind = Number(t.wind_speed_mps || 0);
+                    const prox = Number(t.proximity_to_restricted_zone_m ?? 999);
 
-        clearInterval(autoPlayTimer);
+                    if (rq1ProbBadge) {
+                        rq1ProbBadge.innerText = `Risk Prob: ${(risk * 100).toFixed(1)}%`;
+                        rq1ProbBadge.className = risk >= 0.5 ? "badge bg-danger" : "badge bg-success";
+                    }
 
-        isAutoPlaying = false;
+                    // Individual Parameter Checks
+                    if (rq1ProxCheck) {
+                        if (prox < 50) {
+                            rq1ProxCheck.className = "badge bg-danger";
+                            rq1ProxCheck.innerText = `${formatMetric(prox, 0)}m - CRITICAL VIOLATION (< 50m)`;
+                        } else if (prox < 150) {
+                            rq1ProxCheck.className = "badge bg-warning text-dark";
+                            rq1ProxCheck.innerText = `${formatMetric(prox, 0)}m - APPROACHING BOUNDARY`;
+                        } else {
+                            rq1ProxCheck.className = "badge bg-success";
+                            rq1ProxCheck.innerText = `${formatMetric(prox, 0)}m - SAFE CLEARANCE`;
+                        }
+                    }
 
-        button.className =
-            "btn btn-sm btn-outline-primary btn-control";
+                    if (rq1BatCheck) {
+                        if (bat < 20) {
+                            rq1BatCheck.className = "badge bg-danger";
+                            rq1BatCheck.innerText = `${formatMetric(bat, 1)}% - CRITICAL LOW (< 20%)`;
+                        } else if (bat < 50) {
+                            rq1BatCheck.className = "badge bg-warning text-dark";
+                            rq1BatCheck.innerText = `${formatMetric(bat, 1)}% - MARGINAL RESERVE`;
+                        } else {
+                            rq1BatCheck.className = "badge bg-success";
+                            rq1BatCheck.innerText = `${formatMetric(bat, 1)}% - NOMINAL CHARGE`;
+                        }
+                    }
 
-        button.innerText =
-            "▶ Start Simulation";
+                    if (rq1WindCheck) {
+                        if (wind > 8.0) {
+                            rq1WindCheck.className = "badge bg-danger";
+                            rq1WindCheck.innerText = `${formatMetric(wind, 1)} m/s - HIGH GUST HAZARD (> 8m/s)`;
+                        } else if (wind >= 5.0) {
+                            rq1WindCheck.className = "badge bg-warning text-dark";
+                            rq1WindCheck.innerText = `${formatMetric(wind, 1)} m/s - MODERATE CROSSWIND`;
+                        } else {
+                            rq1WindCheck.className = "badge bg-success";
+                            rq1WindCheck.innerText = `${formatMetric(wind, 1)} m/s - LIGHT BREEZE (SAFE)`;
+                        }
+                    }
 
-        status.innerText =
-            "Simulation stopped";
+                    // Main Status Banner
+                    if (unstable === 1 || risk >= 0.75) {
+                        rq1Box.className = "alert-status bg-danger text-white mb-3";
+                        rq1Box.innerText = `CRITICAL FLIGHT RISK DETECTED (${(risk * 100).toFixed(1)}%)`;
 
-    } else {
+                        const hazards = [];
+                        if (prox < 50) hazards.push(`Zone Proximity violation (${formatMetric(prox, 0)}m)`);
+                        if (bat < 20) hazards.push(`Battery depleted (${formatMetric(bat, 1)}%)`);
+                        if (wind > 8.0) hazards.push(`Wind gust exceeded (${formatMetric(wind, 1)} m/s)`);
 
-        isAutoPlaying = true;
+                        const hazardSummary = hazards.length > 0 ? hazards.join(", ") : "Multi-factor operational risk";
+                        if (rq1Detail) {
+                            rq1Detail.innerHTML = `<strong class="text-danger">Action Required:</strong> Flight hazard triggered by: ${hazardSummary}. Immediate course correction or emergency hover advised.`;
+                        }
+                    } else if (risk >= 0.30 || bat < 20 || wind > 8.0 || prox < 50) {
+                        rq1Box.className = "alert-status bg-warning text-dark mb-3";
+                        rq1Box.innerText = `FLIGHT CAUTION - ELEVATED RISK (${(risk * 100).toFixed(1)}%)`;
+                        if (rq1Detail) {
+                            rq1Detail.innerHTML = `<strong class="text-warning">Caution:</strong> Aerodynamic or environmental stress approaching threshold (Risk: ${(risk * 100).toFixed(1)}%). Operator monitoring advised.`;
+                        }
+                    } else {
+                        rq1Box.className = "alert-status bg-success text-white mb-3";
+                        rq1Box.innerText = `FLIGHT STABLE - NOMINAL (${((1 - risk) * 100).toFixed(1)}% Stable)`;
+                        if (rq1Detail) {
+                            rq1Detail.innerHTML = `<strong class="text-success">Nominal:</strong> Flight telemetry operating smoothly within certified flight envelope (Risk: ${(risk * 100).toFixed(1)}%).`;
+                        }
+                    }
+                }
 
-        button.className =
-            "btn btn-sm btn-warning btn-control";
+                // 6. RQ2 Prediction Details
+                const rawConfidence = r2.predicted_confidence ?? r2.prediction ?? null;
+                const rq2RatingBadge = document.getElementById("rq2RatingBadge");
+                const rq2WeatherFactor = document.getElementById("rq2WeatherFactor");
+                const rq2HeatFactor = document.getElementById("rq2HeatFactor");
+                const rq2ThermalFactor = document.getElementById("rq2ThermalFactor");
+                const rq2Explanation = document.getElementById("rq2Explanation");
+                const rq2ObjectsEl = document.getElementById("rq2Objects");
 
-        button.innerText =
-            "⏸ Pause Simulation";
+                if (r2.available === false) {
+                    setText("rq2Conf", "N/A");
+                    if (rq2RatingBadge) rq2RatingBadge.innerText = "Quality: Unavailable";
+                    if (rq2Explanation) rq2Explanation.innerText = r2.error || "RQ2 unavailable";
+                    document.getElementById("rq2Progress").style.width = "0%";
+                } else if (rawConfidence != null) {
+                    const confidence = Math.max(0, Math.min(100, Number(rawConfidence) * 100));
+                    setText("rq2Conf", confidence.toFixed(1) + "%");
+                    document.getElementById("rq2Progress").style.width = confidence + "%";
+                    document.getElementById("rq2Progress").setAttribute("aria-valuenow", confidence);
 
-        status.innerText =
-            "Simulation running...";
+                    const weather = t.weather_condition || "Clear";
+                    const temp = Number(t.ambient_temp_C || 25);
+                    const thermal = Number(t.thermal_signature_intensity || 100);
+                    const objCount = t.detected_object_count ?? 0;
 
-        autoPlayTimer = setInterval(
+                    if (rq2WeatherFactor) rq2WeatherFactor.innerText = weather;
+                    if (rq2HeatFactor) rq2HeatFactor.innerText = `${formatMetric(temp, 1)} °C`;
+                    if (rq2ThermalFactor) rq2ThermalFactor.innerText = `${formatMetric(thermal, 1)} W/m²`;
+                    const objType = t.target_type && t.target_type !== "Unknown" ? t.target_type : "object";
+                    if (rq2ObjectsEl) rq2ObjectsEl.innerText = `${objCount} ${objType}(s) in sector`;
 
-            () => {
+                    // Quality Badge & Detailed Explanation
+                    const isAdverseWeather = ["fog", "rain", "cloudy"].includes(weather.toLowerCase());
+                    const wind = Number(t.wind_speed_mps || 0);
 
-                const current = Number(
-                    document.getElementById(
-                        "sampleSlider"
-                    ).value
-                );
+                    if (confidence >= 75) {
+                        if (rq2RatingBadge) {
+                            rq2RatingBadge.className = "badge bg-success";
+                            rq2RatingBadge.innerText = "Quality: High (Optimal)";
+                        }
+                        if (rq2Explanation) {
+                            if (isAdverseWeather) {
+                                rq2Explanation.innerHTML = `<span class="text-success fw-semibold">High Detection Confidence:</span> Despite ${weather} weather, steady low wind (${formatMetric(wind, 1)} m/s) and strong thermal emission (${formatMetric(thermal, 1)} W/m²) preserve sensor hotspot contrast.`;
+                            } else {
+                                rq2Explanation.innerHTML = `<span class="text-success fw-semibold">Optimal Conditions:</span> Clear atmospheric visibility and nominal thermal contrast (${formatMetric(thermal, 1)} W/m²) ensure clear solar panel defect identification.`;
+                            }
+                        }
+                    } else if (confidence >= 60) {
+                        if (rq2RatingBadge) {
+                            rq2RatingBadge.className = "badge bg-warning text-dark";
+                            rq2RatingBadge.innerText = "Quality: Moderate";
+                        }
+                        if (rq2Explanation) {
+                            if (!isAdverseWeather && wind > 3.5) {
+                                rq2Explanation.innerHTML = `<span class="text-warning fw-semibold">Moderate Quality:</span> Good optical line-of-sight in Clear sky; elevated wind velocity (${formatMetric(wind, 1)} m/s) causes minor camera gimbal jitter, slightly lowering model certainty.`;
+                            } else {
+                                rq2Explanation.innerHTML = `<span class="text-warning fw-semibold">Standard Inspection Quality:</span> Mission conducted in ${weather} conditions with ${formatMetric(thermal, 1)} W/m² thermal intensity delivers nominal optical/thermal sensor resolution.`;
+                            }
+                        }
+                    } else {
+                        if (rq2RatingBadge) {
+                            rq2RatingBadge.className = "badge bg-danger";
+                            rq2RatingBadge.innerText = "Quality: Low (Degraded)";
+                        }
+                        const reasons = [];
+                        if (temp > 35) reasons.push(`high ambient heat (${formatMetric(temp, 1)}°C) reducing hot-spot thermal contrast`);
+                        if (isAdverseWeather) reasons.push(`optical diffusion under ${weather}`);
+                        if (thermal < 115) reasons.push(`weak thermal radiation (${formatMetric(thermal, 1)} W/m²)`);
 
-                const next = (
-                    current + 1
-                ) % maxDatasetSize;
+                        let fallbackReason = "sensor background noise and terrain clutter";
+                        if (isAdverseWeather) fallbackReason = `atmospheric diffusion under ${weather}`;
+                        else if (wind > 5) fallbackReason = `camera gimbal vibration under ${formatMetric(wind, 1)} m/s wind`;
 
-                updateDashboard(next);
+                        const reasonText = reasons.length > 0 ? reasons.join(", combined with ") : fallbackReason;
+                        if (rq2Explanation) {
+                            rq2Explanation.innerHTML = `<span class="text-danger fw-semibold">Degraded Quality (${confidence.toFixed(1)}%):</span> Reduced detection confidence caused by ${reasonText}.`;
+                        }
+                    }
+                }
 
-            },
+                // 7. RQ3 Prediction
+                updateRQ3Prediction(data);
 
-            2500
+                // 8. RQ3 Charts
+                const history = Array.isArray(data.rq3_history) ? data.rq3_history : [];
+                drawBatteryChart(history);
+                drawEnvironmentChart(history);
 
-        );
+            } catch (error) {
+                console.error("Dashboard update failed:", error);
+                showError("Telemetry error: " + error.message);
+            }
+        }
 
-    }
+        // =====================================================
+        // RQ3 PREDICTION DETAILS
+        // =====================================================
+        function updateRQ3Prediction(data) {
+            const r3 = data.rq3_prediction || {};
+            const telemetry = data.telemetry || {};
 
-}
-
-
-// =====================================================
-// FIND DANGEROUS SAMPLE
-// =====================================================
-
-document.getElementById(
-    "btnDanger"
-).addEventListener(
-    "click",
-    findDangerousSample
-);
-
-
-async function findDangerousSample() {
-
-    if (isAutoPlaying) {
-        toggleAutoPlay();
-    }
-
-    setText(
-        "simStatus",
-        "Searching for risk sample..."
-    );
-
-    try {
-
-        for (
-            let i = 0;
-            i < Math.min(100, maxDatasetSize);
-            i++
-        ) {
-
-            const index = Math.floor(
-                Math.random() * maxDatasetSize
-            );
-
-            const data = await getTelemetry(index);
-
-            const r1 = data.rq1_prediction || {};
-
-            if (r1.is_unstable === 1) {
-
-                await updateDashboard(index);
-
-                setText(
-                    "simStatus",
-                    "Risk sample found!"
-                );
-
+            if (r3.available === false) {
+                setText("rq3Battery", "--");
+                setText("rq3Probability", "N/A");
+                setText("rq3Status", "Unavailable");
+                document.getElementById("rq3Warning").className = "alert alert-warning py-2";
+                setText("rq3Warning", r3.error || "RQ3 prediction unavailable.");
                 return;
-
             }
 
+            const battery = r3.battery_level_pct ?? telemetry.battery_level_pct;
+            setText("rq3Battery", battery == null ? "N/A" : formatMetric(battery, 1) + "%");
+
+            const probNum = Number(r3.abnormal_probability || 0);
+            const probEl = document.getElementById("rq3Probability");
+            if (probEl) {
+                probEl.innerText = (probNum * 100).toFixed(1) + "%";
+                if (probNum >= 0.70) {
+                    probEl.className = "metric-value text-danger fw-bold";
+                } else if (probNum >= 0.30) {
+                    probEl.className = "metric-value text-warning fw-bold";
+                } else {
+                    probEl.className = "metric-value text-success fw-bold";
+                }
+            }
+
+            const status = document.getElementById("rq3Status");
+            const warning = document.getElementById("rq3Warning");
+
+            const rateVal = r3.consumption_pct_per_min ?? r3.battery_drop_pct;
+            const rateStr = rateVal != null ? formatMetric(rateVal, 2) + "%/min" : "";
+            const thStr = r3.threshold != null ? formatMetric(r3.threshold, 2) + "%/min" : "15.58%/min";
+
+            if (r3.unstable_battery === 1 || probNum >= 0.75) {
+                status.innerText = "ABNORMAL";
+                status.className = "metric-value text-danger fw-bold";
+                warning.className = "alert alert-danger py-2";
+                warning.innerText =
+                    `WARNING: Abnormal energy consumption detected! Flight discharge rate (${rateStr}) exceeds 95th percentile operational threshold (${thStr}).`;
+            } else if (probNum >= 0.30) {
+                status.innerText = "ELEVATED LOAD";
+                status.className = "metric-value text-warning fw-bold";
+                warning.className = "alert alert-warning py-2";
+                warning.innerText =
+                    `CAUTION: Elevated operational stress detected (Risk: ${(probNum * 100).toFixed(1)}%). Discharge rate (${rateStr}) is nominal but aerodynamic/thermal load is elevated.`;
+            } else if (r3.unstable_battery === 0) {
+                status.innerText = "NORMAL";
+                status.className = "metric-value text-success fw-bold";
+                warning.className = "alert alert-success py-2";
+                warning.innerText =
+                    `NOMINAL: In-flight discharge rate (${rateStr}) is within certified operational envelope (p95 threshold: ${thStr}).`;
+            } else {
+                status.innerText = "Undetermined";
+                status.className = "metric-value text-secondary fw-bold";
+                warning.className = "alert alert-warning py-2";
+                warning.innerText = "RQ3 model did not return a conclusive state.";
+            }
+
+            if (String(r3.target_source || "").startsWith("heuristic")) {
+                warning.innerText += " (Labels generated via p95 discharge threshold heuristic)";
+            }
+
+            setText("rq3SourceBadge", "Target source: " + (r3.target_source || "Unknown"));
+
+            // Power Draw (Current vs Fleet Avg)
+            const currentPower = Number(r3.power_consumption_watts ?? telemetry.power_consumption_watts ?? 0);
+            const powerEl = document.getElementById("rq3AveragePower");
+            const powerDiffEl = document.getElementById("rq3PowerDiff");
+            if (powerEl && currentPower > 0) {
+                powerEl.innerText = formatMetric(currentPower, 1) + " W";
+                if (powerDiffEl) {
+                    const diff = currentPower - fleetMeanPower;
+                    const pct = (diff / fleetMeanPower) * 100;
+                    const sign = diff >= 0 ? "+" : "";
+
+                    let colorClass = "text-secondary fw-semibold";
+                    if (diff > 15) {
+                        colorClass = "text-danger fw-bold";
+                        powerEl.className = "metric-value text-danger fw-bold";
+                    } else if (diff > 5) {
+                        colorClass = "text-warning fw-bold";
+                        powerEl.className = "metric-value text-warning fw-bold";
+                    } else if (diff < -5) {
+                        colorClass = "text-success fw-bold";
+                        powerEl.className = "metric-value text-success fw-bold";
+                    } else {
+                        powerEl.className = "metric-value text-dark fw-bold";
+                    }
+
+                    powerDiffEl.innerHTML = `Fleet Avg: ${formatMetric(fleetMeanPower, 1)} W (<span class="${colorClass}">${sign}${formatMetric(diff, 1)} W / ${sign}${formatMetric(pct, 1)}%</span>)`;
+                }
+            }
         }
 
-        setText(
-            "simStatus",
-            "No risk sample found"
-        );
+        // =====================================================
+        // FLEET MANAGEMENT & NAVIGATION
+        // =====================================================
+        async function loadFleetDrones() {
+            try {
+                droneList = await fetchJSON(`${API_BASE_URL}/api/v1/drones`);
+                const select = document.getElementById("droneSelect");
+                select.innerHTML = '<option value="ALL">All Fleet Drones (Global Sequence)</option>';
 
-    } catch (error) {
+                if (Array.isArray(droneList) && droneList.length > 0) {
+                    droneList.forEach(d => {
+                        const opt = document.createElement("option");
+                        opt.value = d.drone_id;
+                        opt.textContent = `${d.drone_id} (${Number(d.total_samples).toLocaleString()} records)`;
+                        select.appendChild(opt);
+                    });
 
-        showError(error.message);
+                    // Default to first drone for clean navigation
+                    select.value = droneList[0].drone_id;
+                    await switchDrone(droneList[0].drone_id);
+                } else {
+                    await updateDashboard(0);
+                }
+            } catch (err) {
+                console.warn("Could not load fleet drones:", err);
+                await updateDashboard(0);
+            }
+        }
 
-    }
+        async function switchDrone(droneId) {
+            currentDrone = droneId;
+            const badge = document.getElementById("droneSampleCountBadge");
+            const slider = document.getElementById("sampleSlider");
+            const input = document.getElementById("sampleInput");
 
-}
-
-
-// =====================================================
-// FIND SAFE SAMPLE
-// =====================================================
-
-document.getElementById(
-    "btnSafe"
-).addEventListener(
-    "click",
-    findSafeSample
-);
-
-
-async function findSafeSample() {
-
-    if (isAutoPlaying) {
-        toggleAutoPlay();
-    }
-
-    setText(
-        "simStatus",
-        "Searching for safe sample..."
-    );
-
-    try {
-
-        for (
-            let i = 0;
-            i < Math.min(100, maxDatasetSize);
-            i++
-        ) {
-
-            const index = Math.floor(
-                Math.random() * maxDatasetSize
-            );
-
-            const data = await getTelemetry(index);
-
-            const r1 = data.rq1_prediction || {};
-
-            if (r1.is_unstable === 0) {
-
-                await updateDashboard(index);
-
-                setText(
-                    "simStatus",
-                    "Safe sample found!"
-                );
-
+            if (droneId === "ALL") {
+                currentDroneIndices = null;
+                badge.innerText = `${maxDatasetSize.toLocaleString()} total records`;
+                setText("inputLabel", "Dataset Row #");
+                slider.min = 0;
+                slider.max = Math.max(0, maxDatasetSize - 1);
+                slider.value = 0;
+                input.min = 0;
+                input.max = Math.max(0, maxDatasetSize - 1);
+                input.value = 0;
+                input.placeholder = `0 - ${maxDatasetSize - 1}`;
+                currentStep = 0;
+                await updateDashboard(0);
+                setText("simStatus", "Fleet mode: Viewing all records globally");
                 return;
-
             }
 
+            badge.innerText = "Loading records...";
+            try {
+                if (!droneIndicesMap[droneId]) {
+                    const json = await fetchJSON(`${API_BASE_URL}/api/v1/drone/${droneId}/indices`);
+                    droneIndicesMap[droneId] = json.indices;
+                }
+
+                currentDroneIndices = droneIndicesMap[droneId] || [];
+                const total = currentDroneIndices.length;
+                badge.innerText = `${total.toLocaleString()} records`;
+                setText("inputLabel", `Step (${droneId})`);
+
+                slider.min = 1;
+                slider.max = total;
+                slider.value = 1;
+
+                input.min = 1;
+                input.max = total;
+                input.value = 1;
+                input.placeholder = `1 - ${total}`;
+                currentStep = 0;
+
+                if (total > 0) {
+                    const firstRow = currentDroneIndices[0];
+                    await updateDashboard(firstRow);
+                } else {
+                    await updateDashboard(0);
+                }
+                setText("simStatus", `Filtered to unit ${droneId} (${total.toLocaleString()} records)`);
+            } catch (err) {
+                console.error("Error loading drone indices:", err);
+                badge.innerText = "Error loading";
+                await updateDashboard(0);
+            }
         }
 
-        setText(
-            "simStatus",
-            "No safe sample found"
-        );
+        // =====================================================
+        // EVENT LISTENERS
+        // =====================================================
+        document.getElementById("droneSelect").addEventListener("change", function () {
+            switchDrone(this.value);
+        });
 
-    } catch (error) {
+        function applyDirectInput() {
+            const rawVal = Number(document.getElementById("sampleInput").value);
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                const step = Math.max(1, Math.min(rawVal, currentDroneIndices.length));
+                currentStep = step - 1;
+                const actualIndex = currentDroneIndices[currentStep];
+                updateDashboard(actualIndex);
+                setText("simStatus", `Inspecting ${currentDrone} - Step ${step} / ${currentDroneIndices.length}`);
+            } else {
+                const actualIndex = Math.max(0, Math.min(rawVal, maxDatasetSize - 1));
+                updateDashboard(actualIndex);
+                setText("simStatus", `Inspecting Dataset Row #${actualIndex}`);
+            }
+        }
 
-        showError(error.message);
+        document.getElementById("btnApplyIndex").addEventListener("click", applyDirectInput);
+        document.getElementById("sampleInput").addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                applyDirectInput();
+            }
+        });
 
-    }
+        document.getElementById("btnPrevStep").addEventListener("click", function () {
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                if (currentStep > 0) {
+                    currentStep--;
+                    const actualIndex = currentDroneIndices[currentStep];
+                    updateDashboard(actualIndex);
+                    setText("simStatus", `Viewing ${currentDrone} - Step ${currentStep + 1} / ${currentDroneIndices.length}`);
+                }
+            } else {
+                const current = Number(document.getElementById("sampleInput").value);
+                if (current > 0) {
+                    updateDashboard(current - 1);
+                }
+            }
+        });
 
-}
+        document.getElementById("btnNextStep").addEventListener("click", function () {
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                if (currentStep < currentDroneIndices.length - 1) {
+                    currentStep++;
+                    const actualIndex = currentDroneIndices[currentStep];
+                    updateDashboard(actualIndex);
+                    setText("simStatus", `Viewing ${currentDrone} - Step ${currentStep + 1} / ${currentDroneIndices.length}`);
+                }
+            } else {
+                const current = Number(document.getElementById("sampleInput").value);
+                if (current < maxDatasetSize - 1) {
+                    updateDashboard(current + 1);
+                }
+            }
+        });
 
+        document.getElementById("sampleSlider").addEventListener("input", function () {
+            const val = Number(this.value);
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                currentStep = Math.max(0, Math.min(val - 1, currentDroneIndices.length - 1));
+                const actualIndex = currentDroneIndices[currentStep];
+                updateSliderLabel(currentStep, actualIndex);
+                updateDashboard(actualIndex);
+                setText("simStatus", `Viewing ${currentDrone} - Step ${currentStep + 1} / ${currentDroneIndices.length}`);
+            } else {
+                updateDashboard(val);
+                setText("simStatus", `Inspecting Dataset Row #${val}`);
+            }
+        });
 
-// =====================================================
-// RANDOM SAMPLE
-// =====================================================
+        // Audit: Risk Sample
+        document.getElementById("btnDanger").addEventListener("click", async function () {
+            setText("simStatus", "Querying risk sample...");
+            try {
+                const droneParam = currentDrone !== "ALL" ? `?drone_id=${currentDrone}` : "";
+                const data = await fetchJSON(`${API_BASE_URL}/api/v1/sample/risk${droneParam}`);
 
-document.getElementById(
-    "btnRandom"
-).addEventListener(
-    "click",
-    randomSample
-);
+                if (currentDrone !== "ALL" && data.drone_id !== currentDrone) {
+                    document.getElementById("droneSelect").value = data.drone_id;
+                    await switchDrone(data.drone_id);
+                }
 
+                await updateDashboard(data.index);
+                if (currentDroneIndices && currentDroneIndices.length > 0) {
+                    setText("simStatus", `Loaded Risk Sample on ${data.drone_id} (Step ${currentStep + 1} / ${currentDroneIndices.length})`);
+                } else {
+                    setText("simStatus", `Loaded Risk Sample on ${data.drone_id} (Row #${data.index})`);
+                }
+            } catch (error) {
+                showError("Risk sample query error: " + error.message);
+            }
+        });
 
-function randomSample() {
+        // Audit: Safe Sample
+        document.getElementById("btnSafe").addEventListener("click", async function () {
+            setText("simStatus", "Querying safe sample...");
+            try {
+                const droneParam = currentDrone !== "ALL" ? `?drone_id=${currentDrone}` : "";
+                const data = await fetchJSON(`${API_BASE_URL}/api/v1/sample/safe${droneParam}`);
 
-    if (isAutoPlaying) {
-        toggleAutoPlay();
-    }
+                if (currentDrone !== "ALL" && data.drone_id !== currentDrone) {
+                    document.getElementById("droneSelect").value = data.drone_id;
+                    await switchDrone(data.drone_id);
+                }
 
-    const index = Math.floor(
-        Math.random() * maxDatasetSize
-    );
+                await updateDashboard(data.index);
+                if (currentDroneIndices && currentDroneIndices.length > 0) {
+                    setText("simStatus", `Loaded Safe Sample on ${data.drone_id} (Step ${currentStep + 1} / ${currentDroneIndices.length})`);
+                } else {
+                    setText("simStatus", `Loaded Safe Sample on ${data.drone_id} (Row #${data.index})`);
+                }
+            } catch (error) {
+                showError("Safe sample query error: " + error.message);
+            }
+        });
 
-    updateDashboard(index);
+        // Audit: Battery Anomaly Sample
+        document.getElementById("btnBatteryAnomaly").addEventListener("click", async function () {
+            setText("simStatus", "Querying critical battery sample (< 20%)...");
+            try {
+                const droneParam = currentDrone !== "ALL" ? `?drone_id=${currentDrone}` : "";
+                const data = await fetchJSON(`${API_BASE_URL}/api/v1/sample/battery_anomaly${droneParam}`);
 
-    setText(
-        "simStatus",
-        "Random sample selected"
-    );
+                if (currentDrone !== "ALL" && data.drone_id !== currentDrone) {
+                    document.getElementById("droneSelect").value = data.drone_id;
+                    await switchDrone(data.drone_id);
+                }
 
-}
+                await updateDashboard(data.index);
+                if (currentDroneIndices && currentDroneIndices.length > 0) {
+                    setText(
+                        "simStatus",
+                        `Loaded Critical Battery Sample on ${data.drone_id} (Step ${currentStep + 1} - ${data.battery_level_pct}% battery)`
+                    );
+                } else {
+                    setText(
+                        "simStatus",
+                        `Loaded Critical Battery Sample on ${data.drone_id} (Row #${data.index} - ${data.battery_level_pct}%)`
+                    );
+                }
+            } catch (error) {
+                showError("Battery anomaly query error: " + error.message);
+            }
+        });
 
+        // Audit: Random Record
+        document.getElementById("btnRandom").addEventListener("click", function () {
+            if (currentDroneIndices && currentDroneIndices.length > 0) {
+                currentStep = Math.floor(Math.random() * currentDroneIndices.length);
+                const actualIndex = currentDroneIndices[currentStep];
+                updateDashboard(actualIndex);
+                setText("simStatus", `Inspected Random Step ${currentStep + 1} / ${currentDroneIndices.length} on ${currentDrone}`);
+            } else {
+                const index = Math.floor(Math.random() * maxDatasetSize);
+                updateDashboard(index);
+                setText("simStatus", `Inspected Random Dataset Row #${index}`);
+            }
+        });
 
-// =====================================================
-// INITIALIZATION
-// =====================================================
-
-window.addEventListener(
-    "load",
-    async function() {
-
-        await checkApiStatus();
-
-        await loadMetrics();
-
-        await updateDashboard(0);
-
-    }
-);
-
-</script>
-
+        // =====================================================
+        // INITIALIZATION
+        // =====================================================
+        window.addEventListener("load", async function () {
+            await checkApiStatus();
+            await loadMetrics();
+            await loadFleetDrones();
+        });
+    </script>
 </body>
+
 </html>

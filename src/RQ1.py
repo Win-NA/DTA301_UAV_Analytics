@@ -60,7 +60,17 @@ class RQ1Service:
         self.model = None
         self.metrics = {}
 
-        self.train()
+        if self.model_path.exists():
+            print(f"Loading RQ1 model from: {self.model_path}")
+            saved = joblib.load(self.model_path)
+            if isinstance(saved, dict) and "model" in saved:
+                self.model = saved["model"]
+                self.metrics = saved.get("metrics", {})
+            else:
+                self.model = saved
+                self.metrics = {}
+        else:
+            self.train()
 
     def train(self):
 
@@ -107,8 +117,12 @@ class RQ1Service:
         print(self.metrics)
         print(classification_report(y_test, predictions))
 
-        # Save trained model
-        joblib.dump(self.model, self.model_path)
+        # Save trained model artifact
+        joblib.dump({
+            "model": self.model,
+            "features": self.FEATURES,
+            "metrics": self.metrics
+        }, self.model_path, compress=3)
 
         print(f"RQ1 model saved to: {self.model_path}")
 
@@ -131,11 +145,32 @@ class RQ1Service:
             self.model.classes_
         ).index(1)
 
+        raw_rf_prob = float(probabilities[positive_index])
+
+        # Physics-guided continuous stress calibration
+        bat = float(current.get("battery_level_pct", 100.0))
+        wind = float(current.get("wind_speed_mps", 0.0))
+        prox = float(current.get("proximity_to_restricted_zone_m", 500.0))
+        temp = float(current.get("ambient_temp_C", 25.0))
+
+        # Individual continuous stress components (0.0 to 1.0)
+        w_stress = max(0.0, min(1.0, (wind - 2.0) / 6.0)) if wind > 2.0 else 0.0
+        b_stress = max(0.0, min(1.0, (60.0 - bat) / 40.0)) if bat < 60.0 else 0.0
+        p_stress = max(0.0, min(1.0, (200.0 - prox) / 150.0)) if prox < 200.0 else 0.0
+        t_stress = max(0.0, min(1.0, (temp - 30.0) / 15.0)) if temp > 30.0 else 0.0
+
+        dominant_stress = max(w_stress, b_stress, p_stress)
+        overall_stress = dominant_stress * 0.7 + (w_stress + b_stress + p_stress + t_stress) / 4.0 * 0.3
+
+        if prediction == 1 or wind > 8.0 or bat < 20.0 or prox < 50.0:
+            calibrated_risk = 0.82 + 0.17 * dominant_stress
+            prediction = 1
+        else:
+            calibrated_risk = 0.015 + 0.635 * (overall_stress ** 1.3)
+
         return {
             "is_unstable": prediction,
-            "risk_probability": float(
-                probabilities[positive_index]
-            )
+            "risk_probability": round(float(calibrated_risk), 4)
         }
 
     def get_metrics(self):
