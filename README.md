@@ -8,7 +8,7 @@ A quantitative, data-driven analytics framework and predictive modeling system d
 - **Course**: DTA301 – Data Analytics (Research-Based Learning - RBL)
 - **Project Title**: Drone Telemetry Analytics & Solar Panel Inspection
 - **Supervisor**: Ngo Dang Ha An
-- **Team**: Group 2
+- **Team**: Group 5 (Nhóm 5)
   - **SE193320** – Le Ngoc Hung (Analytics Lead)
   - **SE181676** – Do Tran Hai Son (Domain Modeling & Operations)
   - **SE180020** – Tran Phan Khai Hung (Data Engineering & Pipeline)
