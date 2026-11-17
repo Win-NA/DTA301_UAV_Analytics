@@ -15,3 +15,7 @@ data/raw/SurveilDrone-Net23.csv
 # Bỏ qua các file checkpoint tạm
 */.ipynb_checkpoints/*
 
+
+.ipython/
+*.ipython
+notebooks/.ipython/
