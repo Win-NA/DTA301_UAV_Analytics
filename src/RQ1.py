@@ -63,13 +63,15 @@ class RQ1Service:
         if self.model_path.exists():
             print(f"Loading RQ1 model from: {self.model_path}")
             saved = joblib.load(self.model_path)
-            if isinstance(saved, dict) and "model" in saved:
+            if isinstance(saved, dict) and "model" in saved and saved.get("metrics"):
                 self.model = saved["model"]
                 self.metrics = saved.get("metrics", {})
+                print("RQ1 model and training metrics loaded successfully from cache.")
             else:
-                self.model = saved
-                self.metrics = {}
+                print("RQ1 model cache missing metrics. Training on dataset...")
+                self.train()
         else:
+            print("RQ1 model cache not found. Training on dataset...")
             self.train()
 
     def train(self):

@@ -79,23 +79,23 @@ class RQ3Service:
             if actual_model_path.exists():
                 print(f"Loading RQ3 model from: {actual_model_path}")
                 saved = joblib.load(actual_model_path)
-                if isinstance(saved, dict) and "model" in saved:
+                if isinstance(saved, dict) and "model" in saved and saved.get("metrics"):
                     self.model = saved["model"]
                     self.features = saved.get("features", self.FEATURES)
                     self.metrics = saved.get("metrics", {})
                     self.target_source = saved.get("target_source", "discharge_rate_p95")
                     self.threshold = float(saved.get("threshold", 15.58))
+                    y_full = (self.df[self.threshold_measure] > self.threshold).astype(int)
+                    self.labels = pd.Series(
+                        y_full.values,
+                        index=self.df["_source_index"].values
+                    )
+                    print("RQ3 model loaded successfully from cache.")
                 else:
-                    self.model = saved
-                    self.metrics = {}
-
-                y_full = (self.df[self.threshold_measure] > self.threshold).astype(int)
-                self.labels = pd.Series(
-                    y_full.values,
-                    index=self.df["_source_index"].values
-                )
-                print("RQ3 model loaded successfully from cache.")
+                    print("RQ3 model cache missing metrics. Training on dataset...")
+                    self.train()
             else:
+                print("RQ3 model cache not found. Training on dataset...")
                 self.train()
 
             self.available = True
